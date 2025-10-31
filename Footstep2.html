@@ -1,553 +1,1045 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your First Mission</title>
-    <!-- Load Tailwind CSS CDN -->
+    <title>Footstep 2: Upload your MAP</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        /* Custom modal styles */
-        #custom-modal {
-            transition: opacity 0.3s ease-in-out;
-        }
-        #custom-modal-content {
-            transform: scale(0.9);
-            transition: transform 0.3s ease-in-out;
-        }
-        #custom-modal.visible {
-            opacity: 1;
-            pointer-events: auto;
-        }
-        #custom-modal.visible #custom-modal-content {
-            transform: scale(1);
-        }
-        /* Animation for recording button */
-        .is-recording {
-            animation: pulse 1.5s infinite;
-        }
-        @keyframes pulse {
-            0% {
-                box-shadow: 0 0 0 0 rgba(29, 78, 216, 0.7);
-            }
-            70% {
-                box-shadow: 0 0 0 10px rgba(29, 78, 216, 0);
-            }
-            100% {
-                box-shadow: 0 0 0 0 rgba(29, 78, 216, 0);
-            }
-        }
-        /* Style for saved notes */
-        #saved-records-list li {
-            border-left: 4px solid #3b82f6; /* Blue left border */
-        }
-    </style>
-</head>
-<!-- Added flex-col and padding for the new list -->
-<body class="bg-blue-50 flex flex-col items-center justify-center min-h-screen p-4 py-20">
-
-    <!-- Language Switcher (Moved outside the card) -->
-    <div class="fixed top-6 right-6 z-50 bg-white p-2 rounded-lg shadow-md flex items-center space-x-2">
-        <label for="language-switcher" class="text-sm font-medium text-gray-700">Language:</label>
-        <select id="language-switcher" name="language" class="rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-sm">
-            <option value="en" selected>English</option>
-            <option value="ko">Korean</option>
-            <option value="ja">Japanese</option>
-            <option value="fr">French</option>
-        </select>
-    </div>
-
-    <!-- Main card -->
-    <div class="bg-white border-4 border-blue-200 rounded-2xl shadow-lg p-8 max-w-2xl w-full relative">
-        
-        <!-- Speaker button (Moved to top right of card) -->
-        <button id="speaker-button" class="absolute top-8 right-8 bg-blue-600 text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
-            aria-label="Read text aloud">
-            <!-- Speaker SVG icon -->
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.S53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
-            </svg>
-        </button>
-
-        <!-- Header -->
-        <h1 id="main-title" class="flex items-center text-3xl font-bold text-gray-800">
-            <span class="text-4xl mr-3">🚀</span>
-            <!-- Wrapped the text in a span for easier and more reliable translation -->
-            <span id="main-title-text">Your First Mission!</span>
-        </h1>
-        
-        <!-- Mission title -->
-        <h2 id="mission-title" class="mt-6 text-xl font-semibold text-blue-800">
-            1. Introduce yourself to your walking partners!
-        </h2>
-        
-        <!-- Mission description -->
-        <p id="mission-desc" class="mt-2 text-gray-600">
-            Write a little bit about yourself in the box below. What do you like to do for fun?
-        </p>
-
-        <!-- Text input area wrapper -->
-        <div class="mt-6 relative">
-            <textarea 
-                id="mission-text"
-                class="w-full h-60 border-2 border-blue-300 rounded-xl p-4 pr-16 resize-none focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder-gray-400"
-                placeholder="My name is... and I love to play..."
-            ></textarea>
-            
-            <!-- Mic button (positioned inside text area) -->
-            <button id="mic-button" class="absolute bottom-4 right-4 bg-blue-600 text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
-                aria-label="Start recording">
-                <!-- Mic SVG icon -->
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
-                </svg>
-            </button>
-        </div>
-
-        <!-- Save Button -->
-        <div class="mt-6 flex justify-end">
-            <button id="save-button" class="bg-green-600 text-white px-6 py-3 rounded-lg font-bold shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 transition duration-200 disabled:opacity-50" disabled>
-                <!-- Disabled initially until auth is ready -->
-                <span id="save-button-text">Save</span>
-            </button>
-        </div>
-        
-    </div>
-
-    <!-- Saved Records Section -->
-    <div id="saved-records-container" class="max-w-2xl w-full mt-8">
-        <h3 id="saved-records-title" class="text-2xl font-bold text-gray-700 mb-4">My Saved Notes</h3>
-        <ul id="saved-records-list" class="space-y-3">
-            <!-- Records will be dynamically inserted here -->
-            <li id="loading-placeholder" class="bg-white p-4 rounded-lg shadow text-center text-gray-500">Loading saved notes...</li>
-        </ul>
-    </div>
-
-    <!-- Custom modal (replaces alert()) -->
-    <div id="custom-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 opacity-0 pointer-events-none z-50">
-        <div id="custom-modal-content" class="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full">
-            <h3 id="modal-title" class="text-lg font-medium text-gray-900">Notification</h3>
-            <p id="modal-message" class="mt-2 text-sm text-gray-600">
-                <!-- Message will be inserted here -->
-            </p>
-            <div class="mt-4 flex justify-end">
-                <button id="modal-close-button" class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                    OK
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 
-      FIX: Merged both <script type="module"> blocks into one to resolve ReferenceError.
-      The runApp function is now defined in the same module scope *before* onAuthStateChanged tries to call it.
-    -->
+    <!-- Firebase SDK -->
     <script type="module">
-        // --- Firebase Imports ---
+        // Firebase SDK 스크립트 임포트
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, onSnapshot, setLogLevel, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { 
+            getAuth, 
+            signInAnonymously, 
+            signInWithCustomToken, 
+            onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            collection, 
+            doc, 
+            addDoc, 
+            setDoc, 
+            getDoc,
+            updateDoc, 
+            onSnapshot, 
+            Timestamp,
+            increment,
+            serverTimestamp,
+            query, // (NEW)
+            orderBy // (NEW)
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { 
+            getStorage, 
+            ref, 
+            uploadBytesResumable, 
+            getDownloadURL 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-        // --- Translation Data ---
-        const translations = {
-            en: {
-                mainTitle: "Your First Mission!",
-                missionTitle: "1. Introduce yourself to your walking partners!",
-                missionDesc: "Write a little bit about yourself in the box below. What do you like to do for fun?",
-                placeholder: "My name is... and I love to play...",
-                modalTitle: "Notification",
-                modalClose: "OK",
-                speechListening: "Listening... Speak now.",
-                speechError: "Speech recognition error. Please try again.",
-                speechNoMic: "Microphone access denied. Please allow microphone access in your browser settings.",
-                speechNotSupported: "Speech recognition is not supported in your browser. Try using Chrome or Safari.",
-                ttsNotSupported: "Text-to-Speech is not supported in your browser.",
-                saveButton: "Save",
-                saveSuccessTitle: "🎉 Great Job!",
-                saveSuccessMessage: "Your mission notes have been saved!",
-                saveWait: "Saving...",
-                saveError: "Save Error",
-                saveEmpty: "There is no text to save!",
-                savedRecordsTitle: "My Saved Notes",
-                loadingNotes: "Loading saved notes...",
-                noNotes: "No notes saved yet. Type something and click Save!"
-            },
-            ko: {
-                mainTitle: "첫 번째 미션!",
-                missionTitle: "1. 걷기 파트너에게 자신을 소개하세요!",
-                missionDesc: "아래 상자에 자신에 대해 간단히 적어보세요. 재미로 무엇을 하는 것을 좋아하시나요?",
-                placeholder: "제 이름은... 이고, ...하는 것을 좋아합니다...",
-                modalTitle: "알림",
-                modalClose: "확인",
-                speechListening: "듣고 있습니다... 지금 말씀하세요.",
-                speechError: "음성 인식 오류. 다시 시도해 주세요.",
-                speechNoMic: "마이크 접근이 거부되었습니다. 브라우저 설정에서 마이크 접근을 허용해 주세요.",
-                speechNotSupported: "음성 인식이 브라우저에서 지원되지 않습니다. Chrome이나 Safari를 이용해 보세요.",
-                ttsNotSupported: "텍스트 음성 변환(TTS)이 브라우저에서 지원되지 않습니다.",
-                saveButton: "저장하기",
-                saveSuccessTitle: "🎉 잘했어요!",
-                saveSuccessMessage: "미션 노트가 저장되었습니다!",
-                saveWait: "저장하는 중...",
-                saveError: "저장 오류",
-                saveEmpty: "저장할 내용이 없어요!",
-                savedRecordsTitle: "내가 저장한 노트",
-                loadingNotes: "저장된 노트를 불러오는 중...",
-                noNotes: "아직 저장된 노트가 없어요. 무언가를 쓰고 '저장하기'를 눌러보세요!"
-            },
-            ja: {
-                mainTitle: "最初のミッション！",
-                missionTitle: "1. ウォーキングパートナーに自己紹介をしましょう！",
-                missionDesc: "下のボックスにあなたのことを少し書いてください。 趣味は何ですか？",
-                placeholder: "私の名前は...で、...するのが好きです...",
-                modalTitle: "通知",
-                modalClose: "OK",
-                speechListening: "聞いています... どうぞお話しください。",
-                speechError: "音声認識エラー。もう一度お試しください。",
-                speechNoMic: "マイクへのアクセスが拒否されました。ブラウザの設定でマイクへのアクセスを許可してください。",
-                speechNotSupported: "ご使用のブラウザは音声認識に対応していません。ChromeまたはSafariをお試しください。",
-                ttsNotSupported: "テキスト読み上げは、ご使用のブラウザでサポートされていません。",
-                saveButton: "保存",
-                saveSuccessTitle: "🎉 よくできました！",
-                saveSuccessMessage: "ミッションノートが保存されました！",
-                saveWait: "保存しています...",
-                saveError: "保存エラー",
-                saveEmpty: "保存するテキストがありません！",
-                savedRecordsTitle: "保存したノート",
-                loadingNotes: "保存されたノートを読み込み中...",
-                noNotes: "まだ保存されたノートはありません。何か入力して「保存」をクリックしてください。"
-            },
-            fr: {
-                mainTitle: "Votre Première Mission !",
-                missionTitle: "1. Présentez-vous à vos partenaires de marche !",
-                missionDesc: "Écrivez un peu sur vous dans la case ci-dessous. Qu'aimez-vous faire pour vous amuser ?",
-                placeholder: "Je m'appelle... et j'aime jouer...",
-                modalTitle: "Notification",
-                modalClose: "OK",
-                speechListening: "Je vous écoute... Parlez maintenant.",
-                speechError: "Erreur de reconnaissance vocale. Veuillez réessayer.",
-                speechNoMic: "Accès au microphone refusé. Veuillez autoriser l'accès au microphone dans les paramètres de votre navigateur.",
-                speechNotSupported: "La reconnaissance vocale n'est pas prise en charge par votre navigateur. Essayez d'utiliser Chrome ou Safari.",
-                ttsNotSupported: "La synthèse vocale n'est pas prise en charge par votre navigateur.",
-                saveButton: "Enregistrer",
-                saveSuccessTitle: "🎉 Bon Travail !",
-                saveSuccessMessage: "Vos notes de mission ont été enregistrées !",
-                saveWait: "Enregistrement...",
-                saveError: "Erreur d'Enregistrement",
-                saveEmpty: "Il n'y a pas de texte à enregistrer !",
-                savedRecordsTitle: "Mes Notes Enregistrées",
-                loadingNotes: "Chargement des notes...",
-                noNotes: "Aucune note enregistrée pour le moment. Écrivez quelque chose et cliquez sur Enregistrer !"
-            }
-        };
-
-        // Map simple language codes to more specific BCP 47 codes for Speech API
-        const langMap = {
-            en: 'en-US',
-            ko: 'ko-KR',
-            ja: 'ja-JP',
-            fr: 'fr-FR'
-        };
-
-        // --- Select DOM elements ---
-        const micButton = document.getElementById('mic-button');
-        const speakerButton = document.getElementById('speaker-button');
-        const missionText = document.getElementById('mission-text');
-        const saveButton = document.getElementById('save-button');
+        // --- Firebase 설정 ---
         
-        // Custom modal elements
-        const customModal = document.getElementById('custom-modal');
-        const modalTitle = document.getElementById('modal-title');
-        const modalMessage = document.getElementById('modal-message');
-        const modalCloseButton = document.getElementById('modal-close-button');
-        
-        // Language elements
-        const languageSwitcher = document.getElementById('language-switcher');
-        const mainTitleText = document.getElementById('main-title-text'); 
-        const missionTitle = document.getElementById('mission-title');
-        const missionDesc = document.getElementById('mission-desc');
-        const saveButtonText = document.getElementById('save-button-text');
-        const savedRecordsTitle = document.getElementById('saved-records-title');
-        const loadingPlaceholder = document.getElementById('loading-placeholder');
-        const savedRecordsList = document.getElementById('saved-records-list');
+        // Canvas 환경에서 제공하는 Firebase 설정을 사용합니다.
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : {
+              apiKey: "AIzaSyDRPKmza6cNgnxiT6qo4YHk4uiHue2j8ug",
+              authDomain: "isbopencanopy-f92d3.firebaseapp.com",
+              projectId: "isbopencanopy-f92d3",
+              storageBucket: "isbopencanopy-f92d3.firebasestorage.app",
+              messagingSenderId: "253275410619",
+              appId: "1:253275410619:web:e20db952dc1f12f54f199e"
+            };
 
-        // --- Speech Recognition (STT) Setup ---
+        // Canvas 환경에서 제공하는 App ID를 사용합니다.
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-map-app';
+
+        // Firebase 앱, 인증, Firestore, Storage 초기화
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        let userId = null; // 현재 사용자 ID
+        
+        // --- Speech Recognition (STT) 설정 ---
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let recognition;
+        let currentRecordingTextarea = null; // 현재 STT가 입력될 textarea
         let isRecording = false;
 
         if (SpeechRecognition) {
             recognition = new SpeechRecognition();
-            recognition.continuous = false; // Stop after first utterance
-            recognition.interimResults = false; // Get final results only
+            recognition.continuous = false; // 한 문장씩
+            recognition.lang = 'en-US'; // 기본 영어
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
 
             recognition.onstart = () => {
                 isRecording = true;
-                micButton.classList.add('is-recording');
-                const lang = languageSwitcher.value;
-                showModal(translations[lang].modalTitle, translations[lang].speechListening);
-            };
-
-            recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                missionText.value += transcript + ' '; // Append text
-            };
-
-            recognition.onerror = (event) => {
-                const lang = languageSwitcher.value;
-                const t = translations[lang];
-                if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-                    showModal(t.modalTitle, t.speechNoMic);
-                } else {
-                    showModal(t.modalTitle, t.speechError);
-                    console.error('Speech Recognition Error:', event.error);
+                // 현재 입력창과 연결된 녹음 버튼 찾기
+                const recordBtn = currentRecordingTextarea.closest('form, .new-comment-form, .reply-form').querySelector('.record-btn');
+                if (recordBtn) {
+                    recordBtn.textContent = '🛑';
+                    recordBtn.classList.add('is-recording');
                 }
             };
 
             recognition.onend = () => {
                 isRecording = false;
-                micButton.classList.remove('is-recording');
-                // Don't close modal immediately
-            };
-        }
-
-        // --- Main App Function (Definition) ---
-        // This function contains all the logic that depends on Firebase (db, auth, userId)
-        function runApp(auth, db, userId, appId) {
-            console.log("App is running for user:", userId);
-
-            // Enable the save button now that auth is ready
-            saveButton.disabled = false;
-            
-            // Define the Firestore collection path for this user
-            const notesCollectionPath = `artifacts/${appId}/users/${userId}/mission_notes`;
-
-            // --- Functions ---
-
-            // Function to update language
-            function updateLanguage(lang) {
-                const t = translations[lang];
-                
-                mainTitleText.textContent = t.mainTitle;
-                missionTitle.textContent = t.missionTitle;
-                missionDesc.textContent = t.missionDesc;
-                missionText.placeholder = t.placeholder;
-                modalCloseButton.textContent = t.modalClose;
-                saveButtonText.textContent = t.saveButton;
-                savedRecordsTitle.textContent = t.savedRecordsTitle;
-                // Check if loadingPlaceholder still exists before updating
-                const currentLoadingPlaceholder = document.getElementById('loading-placeholder');
-                if(currentLoadingPlaceholder) currentLoadingPlaceholder.textContent = t.loadingNotes;
-
-                // Update speech recognition language
-                if (recognition) {
-                    recognition.lang = langMap[lang] || 'en-US';
+                if (currentRecordingTextarea) {
+                    const recordBtn = currentRecordingTextarea.closest('form, .new-comment-form, .reply-form').querySelector('.record-btn');
+                    if (recordBtn) {
+                        recordBtn.textContent = '🎤';
+                        recordBtn.classList.remove('is-recording');
+                    }
                 }
-            }
+                currentRecordingTextarea = null;
+            };
 
-            // Function to show custom modal (alert)
-            function showModal(title, message) {
-                modalTitle.textContent = title;
-                modalMessage.textContent = message;
-                customModal.classList.add('visible');
-            }
+            recognition.onresult = (event) => {
+                const transcript = event.results[event.results.length - 1][0].transcript;
+                if (currentRecordingTextarea) {
+                    currentRecordingTextarea.value += transcript + ' '; // 텍스트 추가
+                }
+            };
 
-            // Close modal
-            modalCloseButton.addEventListener('click', () => {
-                customModal.classList.remove('visible');
-            });
-
-            // --- Event Listeners ---
-
-            // Mic button click event
-            micButton.addEventListener('click', () => {
-                const lang = languageSwitcher.value;
-                if (!SpeechRecognition) {
-                    showModal(translations[lang].modalTitle, translations[lang].speechNotSupported);
-                    micButton.disabled = true;
-                    return;
+            recognition.onerror = (event) => {
+                console.error("Speech recognition error", event.error);
+                if (event.error === 'no-speech') {
+                    alert("No speech was detected. Please try again.");
+                } else if (event.error === 'audio-capture') {
+                    alert("Microphone not found. Please check your settings.");
+                } else if (event.error === 'not-allowed') {
+                    alert("Permission to use microphone was denied. Please allow it in your browser settings.");
                 }
                 if (isRecording) {
                     recognition.stop();
+                }
+                // onend가 자동으로 호출되므로 UI 정리는 거기서 처리됨
+            };
+        } else {
+            console.warn("Speech Recognition not supported in this browser.");
+        }
+
+
+        // --- 공용 데이터 경로 ---
+        // 모든 사용자가 데이터를 공유해야 하므로 public 경로를 사용합니다.
+        const postsCollectionPath = `artifacts/${appId}/public/data/student-maps`;
+
+        // --- UI 요소 ---
+        const postsGrid = document.getElementById('posts-grid');
+        const addPostCard = document.getElementById('add-post-card');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const userIdDisplay = document.getElementById('user-id-display');
+
+        // --- (REMOVED) 새 업로드 Modal UI 요소 ---
+        // const uploadModal = document.getElementById('upload-modal');
+        // const cancelModalBtn = document.getElementById('cancel-modal-btn');
+        // const postModalForm = document.getElementById('post-modal-form');
+        // const modalFileInput = document.getElementById('modal-file-input');
+        // const modalImagePreview = document.getElementById('modal-image-preview');
+        // const modalDescriptionInput = document.getElementById('modal-description-input');
+        // const modalRecordBtn = document.getElementById('modal-record-btn');
+
+        // --- (NEW) 새 업로드 폼 UI 요소 (add-post-card 내부) ---
+        const newPostForm = document.getElementById('new-post-form');
+        const newFileInput = document.getElementById('new-file-input');
+        const newImagePreview = document.getElementById('new-image-preview');
+        const newImagePreviewContainer = document.getElementById('new-image-preview-container');
+        const newFileLabel = document.getElementById('new-file-label');
+        const newDescriptionInput = document.getElementById('new-description-input');
+        const newRecordBtn = document.getElementById('new-record-btn');
+        
+        // --- 템플릿 ---
+        const postTemplate = document.getElementById('post-template');
+        const commentTemplate = document.getElementById('comment-template');
+
+        // --- 로딩 오버레이 ---
+        function showLoading(message = "Uploading...") {
+            loadingOverlay.querySelector('p').textContent = message;
+            loadingOverlay.classList.remove('hidden');
+        }
+        function hideLoading() {
+            loadingOverlay.classList.add('hidden');
+        }
+
+        // --- 1. 인증 및 앱 초기화 ---
+        async function initializeAppAuth() {
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    console.log("Sign-in successful:", userId);
+                    // userIdDisplay.textContent = `내 ID: ${userId} (친구에게 알려주세요!)`; // User ID 표시 제거
+                    loadPosts(); // 사용자가 인증되면 게시물 로드
                 } else {
+                    // Canvas 토큰이 있으면 사용, 없으면 익명 로그인
                     try {
-                        recognition.lang = langMap[languageSwitcher.value] || 'en-US';
-                        recognition.start();
-                    } catch (e) {
-                        console.error("Error starting recognition: ", e.message);
-                        if(isRecording) recognition.stop();
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (error) {
+                        console.error("Sign-in failed:", error);
+                        userIdDisplay.textContent = "Failed to sign in. Please refresh.";
                     }
                 }
             });
+        }
 
-            // Speaker button click event
-            speakerButton.addEventListener('click', () => {
-                const lang = languageSwitcher.value;
-                if (!('speechSynthesis' in window)) {
-                    showModal(translations[lang].modalTitle, translations[lang].ttsNotSupported);
-                    speakerButton.disabled = true;
-                    return;
-                }
-                const t = translations[lang];
-                const promptText = `${t.mainTitle} ${t.missionTitle} ${t.missionDesc}`;
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(promptText);
-                utterance.lang = langMap[lang] || 'en-US';
-                window.speechSynthesis.speak(utterance);
-            });
-
-            // Save button click event
-            saveButton.addEventListener('click', async () => {
-                const textToSave = missionText.value.trim();
-                const lang = languageSwitcher.value;
-                const t = translations[lang];
-
-                if (!textToSave) {
-                    showModal(t.modalTitle, t.saveEmpty);
-                    return;
-                }
-
-                showModal(t.saveWait, "..."); // Show saving message
-                saveButton.disabled = true;
-
-                try {
-                    // Add a new document to the user's private collection
-                    await addDoc(collection(db, notesCollectionPath), {
-                        text: textToSave,
-                        createdAt: serverTimestamp() // Use server timestamp for reliable ordering
-                    });
-                    
-                    // Show success
-                    showModal(t.saveSuccessTitle, t.saveSuccessMessage);
-                    missionText.value = ""; // Clear text area
-
-                } catch (error) {
-                    console.error("Error adding document: ", error);
-                    showModal(t.saveError, error.message);
-                } finally {
-                    saveButton.disabled = false;
-                }
-            });
-
-            // Language switcher event
-            languageSwitcher.addEventListener('change', (e) => {
-                updateLanguage(e.target.value);
-                if (isRecording) recognition.stop();
-                window.speechSynthesis.cancel();
-            });
-
-            // --- Firestore Real-time Listener ---
-            // Listen for changes in the notes collection
-            const q = query(collection(db, notesCollectionPath));
+        // --- 2. 게시물 로드 (실시간) ---
+        function loadPosts() {
+            // (MODIFIED) postsRef에 orderBy('createdAt') 쿼리 추가
+            // Firestore에서 직접 정렬하며, docChanges()를 사용하기 위해 필요합니다.
+            // (MODIFIED AGAIN) orderBy 제거. 수동 색인(index) 생성이 필요하여 버그를 유발함.
+            // const postsRef = query(collection(db, postsCollectionPath), orderBy("createdAt", "asc"));
+            const postsRef = query(collection(db, postsCollectionPath));
             
-            onSnapshot(q, (snapshot) => {
-                const notes = [];
-                snapshot.forEach((doc) => {
-                    notes.push({ id: doc.id, ...doc.data() });
-                });
+            // onSnapshot으로 실시간 변경 감지
+            onSnapshot(postsRef, (snapshot) => {
+                
+                // (MODIFIED) "모두 지우고 다시 그리기" 대신 docChanges() 사용
+                snapshot.docChanges().forEach((change) => {
+                    const postData = { id: change.doc.id, ...change.doc.data() };
 
-                // Sort notes by createdAt timestamp (newest first)
-                // Handle null timestamps (which can happen briefly on serverTimestamp)
-                notes.sort((a, b) => {
+                    if (change.type === "added") {
+                        // 새 게시물이 추가됨 (renderPost가 addPostCard 앞에 추가)
+                        renderPost(postData);
+                    }
+                    if (change.type === "modified") {
+                        // 기존 게시물(이모지)이 수정됨
+                        // 1. 기존 카드 찾기
+                        const existingCard = document.querySelector(`.post-card[data-post-id="${postData.id}"]`);
+                        if (existingCard) {
+                            // 2. 이모지 카운트만 업데이트
+                            const reactionsContainer = existingCard.querySelector('.reactions-container');
+                            ['heart', 'smile'].forEach(emojiName => {
+                                const countSpan = reactionsContainer.querySelector(`[data-emoji="${emojiName}"] .count`);
+                                if(countSpan) {
+                                    countSpan.textContent = postData.reactions[emojiName] || 0;
+                                }
+                            });
+                            // (참고) 설명 등이 수정될 경우, 이 부분에서 더 많은 UI를 업데이트할 수 있습니다.
+                        }
+                    }
+                    if (change.type === "removed") {
+                        // 게시물이 삭제됨
+                        const existingCard = document.querySelector(`.post-card[data-post-id="${postData.id}"]`);
+                        if (existingCard) {
+                            existingCard.remove();
+                        }
+                    }
+                });
+            
+            // (NEW) onSnapshot 에러 핸들러 추가
+            }, (error) => {
+                console.error("Failed to load posts (onSnapshot error):", error);
+                alert("Error: Could not load map data. Please check console and refresh.");
+            });
+        }
+
+        // --- 3. 게시물 카드 렌더링 ---
+        function renderPost(postData) {
+            const postCard = postTemplate.content.cloneNode(true).firstElementChild;
+            postCard.dataset.postId = postData.id;
+
+            // 이미지 설정
+            const img = postCard.querySelector('.post-image');
+            img.src = postData.imageUrl;
+            img.alt = "Student's uploaded map";
+            img.onerror = () => { 
+                img.src = `https://placehold.co/400x300/F871B1/FFFFFF?text=IMAGE+FAILED`; 
+                img.alt = "Could not load image.";
+            };
+
+            // --- (MODIFIED) 게시물 설명 표시 ---
+            const descriptionContainer = postCard.querySelector('.post-description-container');
+            const descriptionText = descriptionContainer.querySelector('.post-description-text');
+            // const descriptionForm = descriptionContainer.querySelector('.description-form'); // REMOVED
+            
+            if (postData.description) {
+                descriptionText.textContent = postData.description;
+                descriptionContainer.classList.remove('hidden'); // 컨테이너를 보여줌
+            } else {
+                descriptionContainer.classList.add('hidden'); // 컨테이너를 숨김
+            }
+
+            // (REMOVED) Description form event listeners
+            // ... (descRecordBtn, descSaveBtn related logic removed) ...
+
+
+            // 이모지 반응 렌더링 및 이벤트 리스너
+            const reactionsContainer = postCard.querySelector('.reactions-container');
+            ['heart', 'smile'].forEach(emojiName => {
+                const btn = reactionsContainer.querySelector(`[data-emoji="${emojiName}"]`);
+                const countSpan = btn.querySelector('.count');
+                countSpan.textContent = postData.reactions[emojiName] || 0;
+                
+                btn.onclick = () => handleReactionClick(postData.id, emojiName);
+            });
+
+            // 댓글 폼 이벤트 리스너
+            const postCommentBtn = postCard.querySelector('.post-comment-btn');
+            const commentInput = postCard.querySelector('.comment-input');
+            const recordBtn = postCard.querySelector('.record-btn');
+            // const audioPreview = postCard.querySelector('.audio-preview'); // REMOVED
+
+            postCommentBtn.onclick = (e) => handlePostComment(e, postData.id);
+            recordBtn.onclick = (e) => handleSpeechRecognition(e, recordBtn.closest('.new-comment-form'));
+
+            // 댓글 목록 로드
+            const commentsList = postCard.querySelector('.comments-list');
+            loadComments(postData.id, commentsList);
+
+            // '새 지도 올리기' 카드 *앞에* 새 게시물 추가
+            // (MODIFIED) addPostCard는 항상 첫 번째이므로, 그 다음에 추가합니다.
+            // postsGrid.insertBefore(postCard, addPostCard.nextSibling); // [폼], [글3], [글2], [글1] ...
+            
+            // (NEW - MODIFIED) addPostCard *앞에* 추가하여 폼이 항상 마지막에 오도록 합니다.
+            postsGrid.insertBefore(postCard, addPostCard); // [글1], [글2], [글3] ... [폼]
+        }
+
+        // --- 4. 댓글 로드 (실시간) ---
+        function loadComments(postId, commentsListContainer) {
+            const commentsRef = collection(db, postsCollectionPath, postId, 'comments');
+            
+            onSnapshot(commentsRef, (snapshot) => {
+                commentsListContainer.innerHTML = ''; // 기존 댓글 삭제
+                
+                const comments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // (MODIFIED) 댓글 정렬 (createdAt이 null일 경우 대비)
+                comments.sort((a, b) => {
                     const timeA = a.createdAt?.toMillis() || 0;
                     const timeB = b.createdAt?.toMillis() || 0;
-                    return timeB - timeA;
+                    return timeA - timeB;
+                });
+                
+                comments.forEach(comment => {
+                    renderComment(comment, commentsListContainer, postId);
+                });
+            });
+        }
+
+        // --- 5. 댓글 카드 렌더링 ---
+        function renderComment(commentData, commentsListContainer, postId) {
+            const commentCard = commentTemplate.content.cloneNode(true).firstElementChild;
+            
+            const textEl = commentCard.querySelector('.comment-text');
+            textEl.textContent = commentData.text || "Comment"; // "Voice Comment" -> "Comment"
+            
+            // 작성자 표시 (익명 또는 ID)
+            const authorEl = document.createElement('span');
+            authorEl.className = 'text-xs text-gray-500 ml-2';
+            authorEl.textContent = `(by anonymous)`; // 익명으로 표시
+            textEl.appendChild(authorEl);
+
+
+            // 오디오 플레이어 (REMOVED)
+            const audioEl = commentCard.querySelector('.comment-audio');
+            if (audioEl) audioEl.remove();
+
+
+            // '답글 달기' 버튼 (답글의 답글은 막음)
+            const replyBtn = commentCard.querySelector('.reply-btn');
+            const replyForm = commentCard.querySelector('.reply-form');
+            
+            if (replyBtn && replyForm) {
+                replyBtn.onclick = () => {
+                    replyForm.style.display = replyForm.style.display === 'none' ? 'block' : 'none';
+                };
+                
+                // 답글 폼 이벤트 리스너
+                const postReplyBtn = replyForm.querySelector('.post-reply-btn');
+                const recordBtn = replyForm.querySelector('.record-btn');
+                
+                postReplyBtn.onclick = (e) => handlePostReply(e, postId, commentData.id);
+                recordBtn.onclick = (e) => handleSpeechRecognition(e, replyForm);
+            }
+            
+            // 답글 목록 로드
+            const repliesList = commentCard.querySelector('.replies-list');
+            loadReplies(postId, commentData.id, repliesList);
+            
+            commentsListContainer.appendChild(commentCard);
+        }
+
+        // --- 6. 답글 로드 (실시간) ---
+        function loadReplies(postId, commentId, repliesListContainer) {
+            const repliesRef = collection(db, postsCollectionPath, postId, 'comments', commentId, 'replies');
+            
+            onSnapshot(repliesRef, (snapshot) => {
+                repliesListContainer.innerHTML = ''; // 기존 답글 삭제
+                
+                const replies = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // (MODIFIED) 답글 정렬 (createdAt이 null일 경우 대비)
+                replies.sort((a, b) => {
+                    const timeA = a.createdAt?.toMillis() || 0;
+                    const timeB = b.createdAt?.toMillis() || 0;
+                    return timeA - timeB;
+                });
+                
+                replies.forEach(reply => {
+                    renderReply(reply, repliesListContainer);
+                });
+            });
+        }
+
+        // --- 7. 답글 카드 렌더링 ---
+        function renderReply(replyData, repliesListContainer) {
+            // 답글은 댓글 템플릿을 재사용하되, 'Reply' 버튼은 숨김
+            const replyCard = commentTemplate.content.cloneNode(true).firstElementChild;
+            
+            const textEl = replyCard.querySelector('.comment-text');
+            textEl.textContent = replyData.text || "Reply";
+            
+            // 작성자 표시
+            const authorEl = document.createElement('span');
+            authorEl.className = 'text-xs text-gray-500 ml-2';
+            authorEl.textContent = `(by anonymous)`;
+            textEl.appendChild(authorEl);
+
+            // 오디오 플레이어 (REMOVED)
+            const audioEl = replyCard.querySelector('.comment-audio');
+            if (audioEl) audioEl.remove();
+            
+            // 답글의 'Reply' 버튼 및 폼 숨기기
+            const replyBtn = replyCard.querySelector('.reply-btn');
+            if (replyBtn) replyBtn.remove();
+            
+            const replyForm = replyCard.querySelector('.reply-form');
+            if (replyForm) replyForm.remove();
+
+            // 답글의 답글 목록 숨기기
+            const repliesList = replyCard.querySelector('.replies-list');
+            if (repliesList) repliesList.remove();
+
+            repliesListContainer.appendChild(replyCard);
+        }
+        
+        // --- 7.5. 파일 업로드 (공용 함수) ---
+        function uploadFile(file, storagePath) {
+            return new Promise((resolve, reject) => {
+                const storageRef = ref(storage, storagePath);
+                const uploadTask = uploadBytesResumable(storageRef, file);
+
+                uploadTask.on('state_changed',
+                    (snapshot) => {
+                        // 업로드 진행률 (필요시 사용)
+                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        console.log('Upload is ' + progress + '% done');
+                    },
+                    (error) => {
+                        console.error("Upload failed:", error);
+                        reject(error);
+                    },
+                    async () => {
+                        // 업로드 완료 후 다운로드 URL 받기
+                        try {
+                            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                            resolve(downloadURL);
+                        } catch (error) {
+                            reject(error);
+                        }
+                    }
+                );
+            });
+        }
+
+        // --- 8. 새 게시물 추가 --- (MODIFIED - Form 방식으로 변경)
+        async function submitNewPost(e) {
+            e.preventDefault(); // 폼 기본 제출 방지
+            
+            const file = newFileInput.files[0];
+            const description = newDescriptionInput.value.trim();
+
+            if (!file) {
+                alert("Please select an image to upload.");
+                return;
+            }
+            if (!description) {
+                alert("Please enter a description.");
+                return;
+            }
+
+            showLoading("Uploading map...");
+            
+            try {
+                // 1. 파일 업로드
+                const fileId = `${Date.now()}-${file.name}`;
+                // (FIX) 'data' 세그먼트를 스토리지 경로에 추가하여 권한 오류 수정
+                const imagePath = `artifacts/${appId}/public/data/images/${fileId}`;
+                const imageUrl = await uploadFile(file, imagePath);
+
+                // 2. Firestore에 새 문서 추가 (설명 포함)
+                const postsRef = collection(db, postsCollectionPath);
+                await addDoc(postsRef, {
+                    imageUrl: imageUrl,
+                    description: description, // (MODIFIED) 설명 바로 추가
+                    userId: userId,
+                    createdAt: serverTimestamp(), // 서버 시간 기준
+                    reactions: {
+                        heart: 0,
+                        smile: 0
+                    }
                 });
 
-                // Render notes to the list
-                savedRecordsList.innerHTML = ""; // Clear the list
-                const lang = languageSwitcher.value;
+                console.log("New post added successfully!");
+                
+                // (NEW) 폼 리셋
+                newPostForm.reset();
+                newImagePreview.src = '';
+                newImagePreviewContainer.classList.add('hidden');
+                newFileLabel.classList.remove('hidden'); // '+' 라벨 다시 보이기
 
-                if (notes.length === 0) {
-                    const li = document.createElement('li');
-                    li.className = "bg-white p-4 rounded-lg shadow text-center text-gray-500";
-                    li.textContent = translations[lang].noNotes;
-                    savedRecordsList.appendChild(li);
-                } else {
-                    notes.forEach(note => {
-                        const li = document.createElement('li');
-                        li.className = "bg-white p-4 rounded-lg shadow-sm";
-                        
-                        const text = document.createElement('p');
-                        text.textContent = note.text;
-                        text.className = "text-gray-800";
-                        li.appendChild(text);
+            } catch (error) {
+                console.error("Failed to add new post:", error);
+                // alert("Failed to upload post. Please try again.");
+                // (MODIFIED) 정확한 에러 메시지를 알림창에 표시
+                alert("Failed to upload post. Error: " + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
 
-                        if (note.createdAt) {
-                            const timestamp = document.createElement('span');
-                            timestamp.textContent = note.createdAt.toDate().toLocaleString(langMap[lang]);
-                            timestamp.className = "text-xs text-gray-500 mt-1 block";
-                            li.appendChild(timestamp);
-                        }
-                        savedRecordsList.appendChild(li);
-                    });
-                }
+        // --- 9. 이모지 반응 클릭 ---
+        async function handleReactionClick(postId, emojiName) {
+            const postRef = doc(db, postsCollectionPath, postId);
+            
+            try {
+                // increment()를 사용해 동시 클릭에도 안전하게 카운트
+                await updateDoc(postRef, {
+                    [`reactions.${emojiName}`]: increment(1)
+                });
+            } catch (error) {
+                console.error("Reaction update failed:", error);
+            }
+        }
 
-            }, (error) => {
-                console.error("onSnapshot error:", error);
-                savedRecordsList.innerHTML = `<li class="bg-red-100 text-red-700 p-4 rounded-lg">Error loading notes.</li>`;
+        // --- 10. 댓글 게시 ---
+        async function handlePostComment(e, postId) {
+        const form = e.target.closest('.new-comment-form');
+        const input = form.querySelector('.comment-input');
+        // const audioPreview = form.querySelector('.audio-preview'); // REMOVED
+        const text = input.value.trim();
+        // const audioBlob = audioPreview.src ? await fetch(audioPreview.src).then(r => r.blob()) : null; // REMOVED
+
+        if (!text) { // 오디오 체크 제거
+            alert("Please enter a comment!");
+            return;
+        }
+
+        showLoading("Posting comment...");
+
+        try {
+            // let audioUrl = null; // REMOVED
+            // ... (audio upload logic removed) ...
+
+            // Firestore에 댓글 추가
+            const commentsRef = collection(db, postsCollectionPath, postId, 'comments');
+            await addDoc(commentsRef, {
+                text: text,
+                // audioUrl: audioUrl, // REMOVED
+                userId: userId,
+                createdAt: serverTimestamp()
             });
 
-            // Initial load
-            updateLanguage(languageSwitcher.value);
+            // 폼 초기화
+            input.value = '';
+            // audioPreview.src = ''; // REMOVED
+            // audioPreview.classList.add('hidden'); // REMOVED
+            // form.querySelector('.record-btn').textContent = '🎤'; // STT가 자동으로 처리
+        } catch (error) {
+                console.error("Failed to post comment:", error);
+                alert("Failed to post comment.");
+            } finally {
+                hideLoading();
+            }
         }
 
-        // --- Firebase Configuration & Initialization ---
-        // (This code runs after all functions above are defined)
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        // --- 11. 답글 게시 ---
+        async function handlePostReply(e, postId, commentId) {
+        const form = e.target.closest('.reply-form');
+        const input = form.querySelector('.reply-input');
+        // const audioPreview = form.querySelector('.audio-preview'); // REMOVED
+        const text = input.value.trim();
+        // const audioBlob = audioPreview.src ? await fetch(audioPreview.src).then(r => r.blob()) : null; // REMOVED
 
-        let app, auth, db;
+        if (!text) { // 오디오 체크 제거
+            alert("Please enter a reply!");
+            return;
+        }
+
+        showLoading("Posting reply...");
+        
         try {
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-            setLogLevel('debug'); // Optional: for detailed Firestore logs
-        } catch (e) {
-            console.error("Firebase initialization error:", e);
-            document.body.innerHTML = "<h1>Error initializing the app. Please check console.</h1>";
+            // let audioUrl = null; // REMOVED
+            // ... (audio upload logic removed) ...
+
+            // Firestore에 답글 추가
+            const repliesRef = collection(db, postsCollectionPath, postId, 'comments', commentId, 'replies');
+            await addDoc(repliesRef, {
+                text: text,
+                // audioUrl: audioUrl, // REMOVED
+                userId: userId,
+                createdAt: serverTimestamp()
+            });
+
+            // 폼 초기화
+            input.value = '';
+            // audioPreview.src = ''; // REMOVED
+            // audioPreview.classList.add('hidden'); // REMOVED
+            // form.querySelector('.record-btn').textContent = '🎤'; // STT가 자동으로 처리
+            form.style.display = 'none'; // 폼 숨기기
+        } catch (error) {
+                console.error("Failed to post reply:", error);
+                alert("Failed to post reply.");
+            } finally {
+                hideLoading();
+            }
         }
 
-        // --- Firebase Authentication Listener ---
-        // This listener will call runApp *after* auth state is confirmed
-        // and *after* runApp has been defined (since it's in the same scope).
-        onAuthStateChanged(auth, async (user) => {
-            let currentUserId;
-            if (user) {
-                console.log("User is signed in:", user.uid);
-                currentUserId = user.uid;
+        // --- (REMOVED) 11.5. 설명 저장 ---
+        // async function handleSaveDescription(e, postId) { ... }
+
+        // --- 12. 음성 녹음 토글 --- (REMOVED)
+        // ... (toggleRecording function removed) ...
+
+        // --- (NEW) 12. Speech-to-Text (STT) 핸들러 ---
+        function handleSpeechRecognition(e, formElement) {
+            e.preventDefault(); // 폼 제출 방지 (필요시)
+            if (!SpeechRecognition) {
+                alert("Speech recognition is not supported in your browser.");
+                return;
+            }
+
+            const targetInput = formElement.querySelector('textarea, .comment-input, .reply-input, #new-description-input'); // (MODIFIED)
+            if (!targetInput) {
+                console.error("STT Error: Could not find target textarea.");
+                return;
+            }
+
+            if (isRecording) {
+                if (currentRecordingTextarea === targetInput) {
+                    // 같은 버튼을 눌러 중지
+                    recognition.stop();
+                } else {
+                    // 다른 녹음이 진행 중
+                    alert("Another recording is in progress. Please complete it first.");
+                }
             } else {
-                console.log("User is not signed in. Attempting auth...");
+                // 새 녹음 시작
+                currentRecordingTextarea = targetInput;
                 try {
-                    // Try to sign in with the provided token
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        // Fallback to anonymous sign-in
-                        await signInAnonymously(auth);
+                    recognition.start();
+                } catch (err) {
+                    console.error("STT start error:", err);
+                    if (isRecording) {
+                        recognition.stop();
                     }
-                    currentUserId = auth.currentUser?.uid;
-                } catch (error) {
-                    console.error("Authentication error:", error);
-                    document.getElementById('loading-placeholder').textContent = "Authentication failed. Cannot load or save notes.";
                 }
             }
+        }
 
-            // If we have a user, run the main app logic
-            if (currentUserId && db) {
-                // Pass db, auth, userId to the main app function
-                runApp(auth, db, currentUserId, appId);
-            } else {
-                 console.error("Could not get User ID or DB. App cannot start.");
-                 document.getElementById('loading-placeholder').textContent = "Error: Could not get User ID or DB.";
+        // --- (REMOVED) 13. 업로드 Modal 함수 ---
+        // function openUploadModal() { ... }
+        // function closeUploadModal() { ... }
+
+        // (NEW) 새 게시물 폼 파일 입력 시 미리보기
+        newFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    newImagePreview.src = event.target.result;
+                    newImagePreviewContainer.classList.remove('hidden');
+                    newFileLabel.classList.add('hidden'); // '+' 라벨 숨기기
+                };
+                reader.readAsDataURL(file);
             }
         });
+
+
+        // --- 이벤트 리스너 연결 ---
+        
+        // (NEW) 새 게시물 폼 리스너
+        newPostForm.addEventListener('submit', submitNewPost); // 'handleAddNewPost' -> 'submitNewPost'로 수정
+        newRecordBtn.addEventListener('click', (e) => handleSpeechRecognition(e, newPostForm));
+
+        // (REMOVED) Modal 관련 리스너
+        // addPostCard.addEventListener('click', openUploadModal);
+        // cancelModalBtn.addEventListener('click', closeUploadModal);
+        // postModalForm.addEventListener('submit', submitNewPost);
+        // modalRecordBtn.addEventListener('click', (e) => handleSpeechRecognition(e, postModalForm));
+
+        // --- 앱 시작 ---
+        initializeAppAuth();
+
     </script>
+    
+    <!-- 아이들을 위한 귀여운 스타일 -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F0F9FF; /* 아주 연한 하늘색 */
+            color: #334155; /* 짙은 회색 */
+        }
+
+        h1 {
+            font-weight: 900; /* 아주 굵게 */
+            font-size: 2.5rem; /* 40px */
+            line-height: 1.2;
+            color: #1E40AF; /* 짙은 파랑 */
+            text-shadow: 2px 2px 0 #BFDBFE; /* 연한 파랑 그림자 */
+        }
+        
+        h3 {
+            font-weight: 700;
+            font-size: 1.125rem; /* 18px */
+            color: #1E3A8A;
+            border-bottom: 2px solid #DBEAFE;
+            padding-bottom: 4px;
+            margin-bottom: 12px;
+        }
+
+        /* 카드 기본 스타일 */
+        .card {
+            background-color: white;
+            border-radius: 1.5rem; /* 24px, 더 둥글게 */
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+            transition: all 0.2s ease-in-out;
+            border: 2px solid white;
+        }
+        .card:hover {
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            border-color: #93C5FD; /* hover 시 연한 파랑 테두리 */
+        }
+
+        /* 새 지도 추가 카드 */
+        #add-post-card {
+            border-style: dashed;
+            border-width: 4px;
+            border-color: #93C5FD; /* 연한 파랑 */
+            background-color: #EFF6FF; /* 아주 연한 파랑 */
+            cursor: pointer;
+        }
+        #add-post-card:hover {
+            background-color: #DBEAFE;
+            border-color: #60A5FA;
+        }
+        #add-post-card p {
+            font-size: 1.125rem; /* 18px */
+            font-weight: 700;
+            color: #2563EB;
+        }
+
+        /* (NEW) 새 게시물 폼 스타일 */
+        #new-file-label {
+            border-style: dashed;
+            border-width: 4px;
+            border-color: #93C5FD;
+            background-color: #EFF6FF;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 1.5rem;
+            min-height: 250px;
+            border-radius: 1rem;
+        }
+        #new-file-label:hover {
+            background-color: #DBEAFE;
+            border-color: #60A5FA;
+        }
+        #new-image-preview-container {
+            border: 2px solid #DBEAFE;
+            border-radius: 1rem;
+            min-height: 250px; /* 라벨과 최소 높이 통일 */
+        }
+
+
+        /* 버튼 기본 스타일 */
+        .btn {
+            padding: 0.75rem 1.5rem; /* 12px 24px */
+            border-radius: 9999px; /* 완전 둥글게 */
+            font-weight: 700;
+            font-size: 1rem; /* 16px */
+            color: white;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        /* 핑크 버튼 */
+        .btn-pink {
+            background-color: #F472B6; /* 핑크 */
+        }
+        .btn-pink:hover {
+            background-color: #EC4899;
+        }
+        
+        /* 파랑 버튼 */
+        .btn-blue {
+            background-color: #60A5FA; /* 파랑 */
+        }
+        .btn-blue:hover {
+            background-color: #3B82F6;
+        }
+        
+        /* 댓글 입력창 */
+        textarea {
+            border: 2px solid #DBEAFE;
+            border-radius: 1rem; /* 16px */
+            padding: 0.75rem 1rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        textarea:focus {
+            border-color: #60A5FA;
+            box-shadow: 0 0 0 3px #BFDBFE;
+            outline: none;
+        }
+        
+        /* 녹음 버튼 */
+        .record-btn {
+            font-size: 1.5rem; /* 24px */
+            padding: 0.5rem; /* 8px */
+            width: 3rem; /* 48px */
+            height: 3rem; /* 48px */
+            border-radius: 9999px;
+            background-color: #FEE2E2; /* 연한 빨강 */
+            color: #EF4444; /* 빨강 */
+            transition: all 0.2s;
+        }
+        .record-btn:hover {
+            background-color: #FECACA;
+        }
+        /* 녹음 중 애니메이션 */
+        .record-btn.is-recording {
+            background-color: #EF4444;
+            color: white;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 #F87171; }
+            70% { box-shadow: 0 0 0 10px rgba(248, 113, 113, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0); }
+        }
+
+        /* 이모지 반응 버튼 */
+        .reaction-btn {
+            font-size: 1.5rem; /* 24px */
+            padding: 0.5rem 1rem; /* 8px 16px */
+            border-radius: 9999px;
+            background-color: #F3F4F6;
+            transition: all 0.2s;
+        }
+        .reaction-btn:hover {
+            background-color: #E5E7EB;
+            transform: scale(1.1);
+        }
+        .reaction-btn .count {
+            font-size: 1rem; /* 16px */
+            font-weight: 700;
+            color: #4B5563;
+            margin-left: 0.5rem; /* 8px */
+        }
+        
+        /* 오디오 플레이어 */
+        audio {
+            width: 100%;
+            height: 40px;
+            margin-top: 8px;
+        }
+        
+        /* 로딩 오버레이 */
+        #loading-overlay {
+            background-color: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(4px);
+        }
+        
+        /* 댓글, 답글 카드 */
+        .comment-card {
+            background-color: #F9FAFB; /* 아주 연한 회색 */
+            border-radius: 1rem; /* 16px */
+            padding: 0.75rem 1rem; /* 12px 16px */
+            margin-top: 8px;
+        }
+        .replies-list {
+            margin-left: 1.5rem; /* 24px */
+            padding-left: 1rem; /* 16px */
+            border-left: 2px solid #E5E7EB; /* 연한 회색 */
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- 앱 전체 컨테이너 -->
+    <div id="app-container" class="container mx-auto max-w-7xl p-4 md:p-8">
+        
+        <!-- App Title -->
+        <h1 class="text-center my-8">
+            Footstep 2: Upload your MAP
+        </h1>
+        
+        <!-- User ID Display (Hidden) -->
+        <div id="user-id-display" class="text-center text-sm text-gray-600 mb-6 font-bold hidden">
+            Connecting...
+        </div>
+
+        <!-- Posts Grid -->
+        <div id="posts-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            
+            <!-- (MODIFIED) Add New Map Card -> 이제 폼입니다 -->
+            <div id="add-post-card" class="card flex flex-col p-5 space-y-3">
+                
+                <form id="new-post-form" class="flex flex-col space-y-4 h-full">
+                    
+                    <!-- File Input & Preview -->
+                    <div class="flex-grow">
+                        <input type="file" id="new-file-input" class="hidden" accept="image/*">
+                        
+                        <!-- File Input Label (+) -->
+                        <label id="new-file-label" for="new-file-input">
+                            <span>+</span>
+                            <p>Upload New Map</p>
+                        </label>
+                        
+                        <!-- Image Preview -->
+                        <div id="new-image-preview-container" class="w-full aspect-w-4 aspect-h-3 bg-gray-100 rounded-lg overflow-hidden hidden">
+                            <img id="new-image-preview" src="" alt="Image Preview" class="w-full h-full object-cover">
+                        </div>
+                    </div>
+
+                    <!-- Description Input (별도 윈도우) -->
+                    <div>
+                        <label for="new-description-input" class="block text-sm font-medium text-gray-700 font-bold mb-2">
+                            Add Description (Required)
+                        </label>
+                        <textarea id="new-description-input" class="w-full resize-none" rows="3" placeholder="What is this map about?" required></textarea>
+
+                        <button type="button" id="new-record-btn" class="record-btn !w-10 !h-10 !text-lg mt-2" title="Record Description (STT)">🎤</button>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" id="new-post-submit-btn" class="btn btn-blue w-full">
+                        Upload Post
+                    </button>
+
+                </form>
+            </div>
+
+            <!-- Post cards will be added here by JS -->
+            
+        </div>
+    </div>
+
+    <!-- 게시물 카드 템플릿 -->
+    <template id="post-template">
+        <div class="post-card card flex flex-col overflow-hidden">
+            <!-- Image Area -->
+            <div class="w-full aspect-w-4 aspect-h-3 bg-gray-100">
+                <img class="post-image w-full h-full object-cover" src="https://placehold.co/400x300/EEE/CCC?text=Loading..." alt="Post Image">
+            </div>
+            
+            <!-- Body Area (Reactions + Comments) -->
+            <div class="p-5 flex-grow flex flex-col">
+                
+                <!-- (MODIFIED) Post Description Area -->
+                <div class="post-description-container mb-4 hidden"> <!-- 기본 숨김 -->
+                    <p class="post-description-text text-gray-700"></p>
+                    
+                    <!-- (REMOVED) Description Form -->
+                    <!-- <form class="description-form space-y-3 hidden"> ... </form> -->
+                </div>
+
+                <!-- Emoji Reactions -->
+                <div class="reactions-container flex items-center gap-3 mb-4">
+                    <button class="reaction-btn" data-emoji="heart">
+                        ❤️ <span class="count">0</span>
+                    </button>
+                    <button class="reaction-btn" data-emoji="smile">
+                        😊 <span class="count">0</span>
+                    </button>
+                </div>
+                
+                <!-- Comments Section -->
+                <div class="comments-section flex-grow flex flex-col">
+                    <h3>Leave a Comment</h3>
+                    
+                    <!-- New Comment Form -->
+                    <div class="new-comment-form space-y-3 mb-4">
+                        <textarea class="comment-input w-full resize-none" rows="2" placeholder="Leave a wonderful comment!"></textarea>
+                        <div class="flex items-center gap-3">
+                            <button class="record-btn" title="Record Voice (STT)">🎤</button>
+                            <button class="post-comment-btn btn btn-pink flex-grow">Post</button>
+                        </div>
+                        <!-- <audio class="audio-preview hidden" controls></audio> --> <!-- (REMOVED) -->
+                    </div>
+                    
+                    <!-- Comments List -->
+                    <div class="comments-list flex-grow space-y-2 overflow-y-auto max-h-[300px] pr-2">
+                        <!-- Comment cards will be added here by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+    
+    <!-- 댓글/답글 카드 템플릿 -->
+    <template id="comment-template">
+        <div class="comment-card">
+            <p class="comment-text text-gray-800"></p>
+            <!-- <audio class="comment-audio hidden" controls></audio> --> <!-- (REMOVED) -->
+            <button class="reply-btn text-xs font-bold text-blue-500 hover:text-blue-700 mt-1">Reply</button>
+            
+            <!-- Reply Form (Hidden) -->
+            <div class="reply-form space-y-2 mt-2" style="display: none;">
+                <textarea class="reply-input w-full resize-none text-sm" rows="2" placeholder="Leave a reply..."></textarea>
+                <div class="flex items-center gap-2">
+                    <button class="record-btn !text-base !w-9 !h-9" title="Record Voice (STT)">🎤</button>
+                    <button class="post-reply-btn btn btn-blue !text-sm !py-2 !px-4 flex-grow">Post</button>
+                </div>
+                <!-- <audio class="audio-preview hidden" controls></audio> --> <!-- (REMOVED) -->
+            </div>
+            
+            <!-- Replies List -->
+            <div class="replies-list mt-2 space-y-2">
+                <!-- Reply cards will be added here by JS -->
+            </div>
+        </div>
+    </template>
+
+    <!-- (REMOVED) Upload New Map Modal -->
+    <!-- <div id="upload-modal" ...> ... </div> -->
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="hidden fixed inset-0 bg-white bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-50">
+        <div class="text-center p-8 bg-white rounded-2xl shadow-xl">
+            <div class="w-12 h-12 border-4 border-t-blue-500 border-gray-200 rounded-full animate-spin mx-auto"></div>
+            <p class="text-lg font-bold text-gray-700 mt-4">Uploading...</p>
+        </div>
+    </div>
 
 </body>
 </html>
+
+
+
+
+
+
 
