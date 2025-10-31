@@ -193,7 +193,9 @@
         function loadPosts() {
             // (MODIFIED) postsRef에 orderBy('createdAt') 쿼리 추가
             // Firestore에서 직접 정렬하며, docChanges()를 사용하기 위해 필요합니다.
-            const postsRef = query(collection(db, postsCollectionPath), orderBy("createdAt", "asc"));
+            // (MODIFIED AGAIN) orderBy 제거. 수동 색인(index) 생성이 필요하여 버그를 유발함.
+            // const postsRef = query(collection(db, postsCollectionPath), orderBy("createdAt", "asc"));
+            const postsRef = query(collection(db, postsCollectionPath));
             
             // onSnapshot으로 실시간 변경 감지
             onSnapshot(postsRef, (snapshot) => {
@@ -1050,5 +1052,6 @@
 
 </body>
 </html>
+
 
 
