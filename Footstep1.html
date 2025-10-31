@@ -7,6 +7,7 @@
     <!-- Load Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -41,9 +42,14 @@
                 box-shadow: 0 0 0 0 rgba(29, 78, 216, 0);
             }
         }
+        /* Style for saved notes */
+        #saved-records-list li {
+            border-left: 4px solid #3b82f6; /* Blue left border */
+        }
     </style>
 </head>
-<body class="bg-blue-50 flex items-center justify-center min-h-screen p-4">
+<!-- Added flex-col and padding for the new list -->
+<body class="bg-blue-50 flex flex-col items-center justify-center min-h-screen p-4 py-20">
 
     <!-- Language Switcher (Moved outside the card) -->
     <div class="fixed top-6 right-6 z-50 bg-white p-2 rounded-lg shadow-md flex items-center space-x-2">
@@ -59,6 +65,15 @@
     <!-- Main card -->
     <div class="bg-white border-4 border-blue-200 rounded-2xl shadow-lg p-8 max-w-2xl w-full relative">
         
+        <!-- Speaker button (Moved to top right of card) -->
+        <button id="speaker-button" class="absolute top-8 right-8 bg-blue-600 text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+            aria-label="Read text aloud">
+            <!-- Speaker SVG icon -->
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.S53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
+            </svg>
+        </button>
+
         <!-- Header -->
         <h1 id="main-title" class="flex items-center text-3xl font-bold text-gray-800">
             <span class="text-4xl mr-3">🚀</span>
@@ -94,16 +109,23 @@
             </button>
         </div>
 
-        <!-- Speaker button wrapper (aligned to bottom-right of text area) -->
-        <div class="flex justify-end mt-2">
-            <button id="speaker-button" class="bg-blue-600 text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
-                aria-label="Read text aloud">
-                <!-- Speaker SVG icon -->
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.S53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
-                </svg>
+        <!-- Save Button -->
+        <div class="mt-6 flex justify-end">
+            <button id="save-button" class="bg-green-600 text-white px-6 py-3 rounded-lg font-bold shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 transition duration-200 disabled:opacity-50" disabled>
+                <!-- Disabled initially until auth is ready -->
+                <span id="save-button-text">Save</span>
             </button>
         </div>
+        
+    </div>
+
+    <!-- Saved Records Section -->
+    <div id="saved-records-container" class="max-w-2xl w-full mt-8">
+        <h3 id="saved-records-title" class="text-2xl font-bold text-gray-700 mb-4">My Saved Notes</h3>
+        <ul id="saved-records-list" class="space-y-3">
+            <!-- Records will be dynamically inserted here -->
+            <li id="loading-placeholder" class="bg-white p-4 rounded-lg shadow text-center text-gray-500">Loading saved notes...</li>
+        </ul>
     </div>
 
     <!-- Custom modal (replaces alert()) -->
@@ -121,9 +143,17 @@
         </div>
     </div>
 
-    <script>
+    <!-- 
+      FIX: Merged both <script type="module"> blocks into one to resolve ReferenceError.
+      The runApp function is now defined in the same module scope *before* onAuthStateChanged tries to call it.
+    -->
+    <script type="module">
+        // --- Firebase Imports ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, setLogLevel, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
         // --- Translation Data ---
-        // Added new strings for speech functionality
         const translations = {
             en: {
                 mainTitle: "Your First Mission!",
@@ -131,14 +161,21 @@
                 missionDesc: "Write a little bit about yourself in the box below. What do you like to do for fun?",
                 placeholder: "My name is... and I love to play...",
                 modalTitle: "Notification",
-                micMessage: "Starting voice recording... (simulation)",
-                speakerMessageReading: "Reading text:",
                 modalClose: "OK",
                 speechListening: "Listening... Speak now.",
                 speechError: "Speech recognition error. Please try again.",
                 speechNoMic: "Microphone access denied. Please allow microphone access in your browser settings.",
                 speechNotSupported: "Speech recognition is not supported in your browser. Try using Chrome or Safari.",
-                ttsNotSupported: "Text-to-Speech is not supported in your browser."
+                ttsNotSupported: "Text-to-Speech is not supported in your browser.",
+                saveButton: "Save",
+                saveSuccessTitle: "🎉 Great Job!",
+                saveSuccessMessage: "Your mission notes have been saved!",
+                saveWait: "Saving...",
+                saveError: "Save Error",
+                saveEmpty: "There is no text to save!",
+                savedRecordsTitle: "My Saved Notes",
+                loadingNotes: "Loading saved notes...",
+                noNotes: "No notes saved yet. Type something and click Save!"
             },
             ko: {
                 mainTitle: "첫 번째 미션!",
@@ -146,14 +183,21 @@
                 missionDesc: "아래 상자에 자신에 대해 간단히 적어보세요. 재미로 무엇을 하는 것을 좋아하시나요?",
                 placeholder: "제 이름은... 이고, ...하는 것을 좋아합니다...",
                 modalTitle: "알림",
-                micMessage: "음성 녹음을 시작합니다... (시뮬레이션)",
-                speakerMessageReading: "텍스트 읽는 중:",
                 modalClose: "확인",
                 speechListening: "듣고 있습니다... 지금 말씀하세요.",
                 speechError: "음성 인식 오류. 다시 시도해 주세요.",
                 speechNoMic: "마이크 접근이 거부되었습니다. 브라우저 설정에서 마이크 접근을 허용해 주세요.",
                 speechNotSupported: "음성 인식이 브라우저에서 지원되지 않습니다. Chrome이나 Safari를 이용해 보세요.",
-                ttsNotSupported: "텍스트 음성 변환(TTS)이 브라우저에서 지원되지 않습니다."
+                ttsNotSupported: "텍스트 음성 변환(TTS)이 브라우저에서 지원되지 않습니다.",
+                saveButton: "저장하기",
+                saveSuccessTitle: "🎉 잘했어요!",
+                saveSuccessMessage: "미션 노트가 저장되었습니다!",
+                saveWait: "저장하는 중...",
+                saveError: "저장 오류",
+                saveEmpty: "저장할 내용이 없어요!",
+                savedRecordsTitle: "내가 저장한 노트",
+                loadingNotes: "저장된 노트를 불러오는 중...",
+                noNotes: "아직 저장된 노트가 없어요. 무언가를 쓰고 '저장하기'를 눌러보세요!"
             },
             ja: {
                 mainTitle: "最初のミッション！",
@@ -161,14 +205,21 @@
                 missionDesc: "下のボックスにあなたのことを少し書いてください。 趣味は何ですか？",
                 placeholder: "私の名前は...で、...するのが好きです...",
                 modalTitle: "通知",
-                micMessage: "音声録音を開始します... (シ뮬레이션)",
-                speakerMessageReading: "テキストを読み上げています:",
                 modalClose: "OK",
                 speechListening: "聞いています... どうぞお話しください。",
                 speechError: "音声認識エラー。もう一度お試しください。",
                 speechNoMic: "マイクへのアクセスが拒否されました。ブラウザの設定でマイクへのアクセスを許可してください。",
                 speechNotSupported: "ご使用のブラウザは音声認識に対応していません。ChromeまたはSafariをお試しください。",
-                ttsNotSupported: "テキスト読み上げは、ご使用のブラウザでサポートされていません。"
+                ttsNotSupported: "テキスト読み上げは、ご使用のブラウザでサポートされていません。",
+                saveButton: "保存",
+                saveSuccessTitle: "🎉 よくできました！",
+                saveSuccessMessage: "ミッションノートが保存されました！",
+                saveWait: "保存しています...",
+                saveError: "保存エラー",
+                saveEmpty: "保存するテキストがありません！",
+                savedRecordsTitle: "保存したノート",
+                loadingNotes: "保存されたノートを読み込み中...",
+                noNotes: "まだ保存されたノートはありません。何か入力して「保存」をクリックしてください。"
             },
             fr: {
                 mainTitle: "Votre Première Mission !",
@@ -176,14 +227,21 @@
                 missionDesc: "Écrivez un peu sur vous dans la case ci-dessous. Qu'aimez-vous faire pour vous amuser ?",
                 placeholder: "Je m'appelle... et j'aime jouer...",
                 modalTitle: "Notification",
-                micMessage: "Démarrage de l'enregistrement vocal... (simulation)",
-                speakerMessageReading: "Lecture du texte :",
                 modalClose: "OK",
                 speechListening: "Je vous écoute... Parlez maintenant.",
                 speechError: "Erreur de reconnaissance vocale. Veuillez réessayer.",
                 speechNoMic: "Accès au microphone refusé. Veuillez autoriser l'accès au microphone dans les paramètres de votre navigateur.",
                 speechNotSupported: "La reconnaissance vocale n'est pas prise en charge par votre navigateur. Essayez d'utiliser Chrome ou Safari.",
-                ttsNotSupported: "La synthèse vocale n'est pas prise en charge par votre navigateur."
+                ttsNotSupported: "La synthèse vocale n'est pas prise en charge par votre navigateur.",
+                saveButton: "Enregistrer",
+                saveSuccessTitle: "🎉 Bon Travail !",
+                saveSuccessMessage: "Vos notes de mission ont été enregistrées !",
+                saveWait: "Enregistrement...",
+                saveError: "Erreur d'Enregistrement",
+                saveEmpty: "Il n'y a pas de texte à enregistrer !",
+                savedRecordsTitle: "Mes Notes Enregistrées",
+                loadingNotes: "Chargement des notes...",
+                noNotes: "Aucune note enregistrée pour le moment. Écrivez quelque chose et cliquez sur Enregistrer !"
             }
         };
 
@@ -199,9 +257,11 @@
         const micButton = document.getElementById('mic-button');
         const speakerButton = document.getElementById('speaker-button');
         const missionText = document.getElementById('mission-text');
+        const saveButton = document.getElementById('save-button');
         
         // Custom modal elements
         const customModal = document.getElementById('custom-modal');
+        const modalTitle = document.getElementById('modal-title');
         const modalMessage = document.getElementById('modal-message');
         const modalCloseButton = document.getElementById('modal-close-button');
         
@@ -210,7 +270,10 @@
         const mainTitleText = document.getElementById('main-title-text'); 
         const missionTitle = document.getElementById('mission-title');
         const missionDesc = document.getElementById('mission-desc');
-        const modalTitle = document.getElementById('modal-title');
+        const saveButtonText = document.getElementById('save-button-text');
+        const savedRecordsTitle = document.getElementById('saved-records-title');
+        const loadingPlaceholder = document.getElementById('loading-placeholder');
+        const savedRecordsList = document.getElementById('saved-records-list');
 
         // --- Speech Recognition (STT) Setup ---
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -226,7 +289,7 @@
                 isRecording = true;
                 micButton.classList.add('is-recording');
                 const lang = languageSwitcher.value;
-                showModal(translations[lang].speechListening);
+                showModal(translations[lang].modalTitle, translations[lang].speechListening);
             };
 
             recognition.onresult = (event) => {
@@ -236,10 +299,11 @@
 
             recognition.onerror = (event) => {
                 const lang = languageSwitcher.value;
+                const t = translations[lang];
                 if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-                    showModal(translations[lang].speechNoMic);
+                    showModal(t.modalTitle, t.speechNoMic);
                 } else {
-                    showModal(translations[lang].speechError);
+                    showModal(t.modalTitle, t.speechError);
                     console.error('Speech Recognition Error:', event.error);
                 }
             };
@@ -247,100 +311,241 @@
             recognition.onend = () => {
                 isRecording = false;
                 micButton.classList.remove('is-recording');
-                // Don't close modal immediately, user might be reading it
-                // modalCloseButton.click(); 
+                // Don't close modal immediately
             };
         }
 
-        // --- Functions ---
+        // --- Main App Function (Definition) ---
+        // This function contains all the logic that depends on Firebase (db, auth, userId)
+        function runApp(auth, db, userId, appId) {
+            console.log("App is running for user:", userId);
 
-        // Function to update language
-        function updateLanguage(lang) {
-            const t = translations[lang];
+            // Enable the save button now that auth is ready
+            saveButton.disabled = false;
             
-            mainTitleText.textContent = t.mainTitle;
-            missionTitle.textContent = t.missionTitle;
-            missionDesc.textContent = t.missionDesc;
-            missionText.placeholder = t.placeholder;
-            modalTitle.textContent = t.modalTitle;
-            modalCloseButton.textContent = t.modalClose;
+            // Define the Firestore collection path for this user
+            const notesCollectionPath = `artifacts/${appId}/users/${userId}/mission_notes`;
 
-            // Update speech recognition language
-            if (recognition) {
-                recognition.lang = langMap[lang] || 'en-US';
-            }
-        }
+            // --- Functions ---
 
-        // Function to show custom modal (alert)
-        function showModal(message) {
-            modalMessage.textContent = message;
-            customModal.classList.add('visible');
-        }
+            // Function to update language
+            function updateLanguage(lang) {
+                const t = translations[lang];
+                
+                mainTitleText.textContent = t.mainTitle;
+                missionTitle.textContent = t.missionTitle;
+                missionDesc.textContent = t.missionDesc;
+                missionText.placeholder = t.placeholder;
+                modalCloseButton.textContent = t.modalClose;
+                saveButtonText.textContent = t.saveButton;
+                savedRecordsTitle.textContent = t.savedRecordsTitle;
+                // Check if loadingPlaceholder still exists before updating
+                const currentLoadingPlaceholder = document.getElementById('loading-placeholder');
+                if(currentLoadingPlaceholder) currentLoadingPlaceholder.textContent = t.loadingNotes;
 
-        // Close modal
-        modalCloseButton.addEventListener('click', () => {
-            customModal.classList.remove('visible');
-        });
-
-        // --- Event Listeners ---
-
-        // Mic button click event
-        micButton.addEventListener('click', () => {
-            if (!SpeechRecognition) {
-                const lang = languageSwitcher.value;
-                showModal(translations[lang].speechNotSupported);
-                micButton.disabled = true;
-                return;
-            }
-
-            if (isRecording) {
-                recognition.stop();
-            } else {
-                try {
-                    recognition.lang = langMap[languageSwitcher.value] || 'en-US';
-                    recognition.start();
-                } catch (e) {
-                    // Handle errors if recognition is already started
-                    console.error("Error starting recognition: ", e.message);
-                    if(isRecording) recognition.stop(); // Try to stop it
+                // Update speech recognition language
+                if (recognition) {
+                    recognition.lang = langMap[lang] || 'en-US';
                 }
             }
-        });
 
-        // Speaker button click event
-        speakerButton.addEventListener('click', () => {
-            if (!('speechSynthesis' in window)) {
-                const lang = languageSwitcher.value;
-                showModal(translations[lang].ttsNotSupported);
-                speakerButton.disabled = true;
-                return;
+            // Function to show custom modal (alert)
+            function showModal(title, message) {
+                modalTitle.textContent = title;
+                modalMessage.textContent = message;
+                customModal.classList.add('visible');
             }
 
-            const lang = languageSwitcher.value;
-            const t = translations[lang];
-            
-            // Always read the mission prompt
-            const promptText = `${t.mainTitle} ${t.missionTitle} ${t.missionDesc}`;
-            
-            // Stop any previous speech
-            window.speechSynthesis.cancel();
-            
-            const utterance = new SpeechSynthesisUtterance(promptText);
-            utterance.lang = langMap[lang] || 'en-US';
-            
-            window.speechSynthesis.speak(utterance);
-        });
+            // Close modal
+            modalCloseButton.addEventListener('click', () => {
+                customModal.classList.remove('visible');
+            });
 
-        // Language switcher event
-        languageSwitcher.addEventListener('change', (e) => {
-            updateLanguage(e.target.value);
-            // Stop any ongoing speech or recognition when language changes
-            if (isRecording) recognition.stop();
-            window.speechSynthesis.cancel();
-        });
+            // --- Event Listeners ---
 
-        // Initial load
-        updateLanguage(languageSwitcher.value);
+            // Mic button click event
+            micButton.addEventListener('click', () => {
+                const lang = languageSwitcher.value;
+                if (!SpeechRecognition) {
+                    showModal(translations[lang].modalTitle, translations[lang].speechNotSupported);
+                    micButton.disabled = true;
+                    return;
+                }
+                if (isRecording) {
+                    recognition.stop();
+                } else {
+                    try {
+                        recognition.lang = langMap[languageSwitcher.value] || 'en-US';
+                        recognition.start();
+                    } catch (e) {
+                        console.error("Error starting recognition: ", e.message);
+                        if(isRecording) recognition.stop();
+                    }
+                }
+            });
+
+            // Speaker button click event
+            speakerButton.addEventListener('click', () => {
+                const lang = languageSwitcher.value;
+                if (!('speechSynthesis' in window)) {
+                    showModal(translations[lang].modalTitle, translations[lang].ttsNotSupported);
+                    speakerButton.disabled = true;
+                    return;
+                }
+                const t = translations[lang];
+                const promptText = `${t.mainTitle} ${t.missionTitle} ${t.missionDesc}`;
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(promptText);
+                utterance.lang = langMap[lang] || 'en-US';
+                window.speechSynthesis.speak(utterance);
+            });
+
+            // Save button click event
+            saveButton.addEventListener('click', async () => {
+                const textToSave = missionText.value.trim();
+                const lang = languageSwitcher.value;
+                const t = translations[lang];
+
+                if (!textToSave) {
+                    showModal(t.modalTitle, t.saveEmpty);
+                    return;
+                }
+
+                showModal(t.saveWait, "..."); // Show saving message
+                saveButton.disabled = true;
+
+                try {
+                    // Add a new document to the user's private collection
+                    await addDoc(collection(db, notesCollectionPath), {
+                        text: textToSave,
+                        createdAt: serverTimestamp() // Use server timestamp for reliable ordering
+                    });
+                    
+                    // Show success
+                    showModal(t.saveSuccessTitle, t.saveSuccessMessage);
+                    missionText.value = ""; // Clear text area
+
+                } catch (error) {
+                    console.error("Error adding document: ", error);
+                    showModal(t.saveError, error.message);
+                } finally {
+                    saveButton.disabled = false;
+                }
+            });
+
+            // Language switcher event
+            languageSwitcher.addEventListener('change', (e) => {
+                updateLanguage(e.target.value);
+                if (isRecording) recognition.stop();
+                window.speechSynthesis.cancel();
+            });
+
+            // --- Firestore Real-time Listener ---
+            // Listen for changes in the notes collection
+            const q = query(collection(db, notesCollectionPath));
+            
+            onSnapshot(q, (snapshot) => {
+                const notes = [];
+                snapshot.forEach((doc) => {
+                    notes.push({ id: doc.id, ...doc.data() });
+                });
+
+                // Sort notes by createdAt timestamp (newest first)
+                // Handle null timestamps (which can happen briefly on serverTimestamp)
+                notes.sort((a, b) => {
+                    const timeA = a.createdAt?.toMillis() || 0;
+                    const timeB = b.createdAt?.toMillis() || 0;
+                    return timeB - timeA;
+                });
+
+                // Render notes to the list
+                savedRecordsList.innerHTML = ""; // Clear the list
+                const lang = languageSwitcher.value;
+
+                if (notes.length === 0) {
+                    const li = document.createElement('li');
+                    li.className = "bg-white p-4 rounded-lg shadow text-center text-gray-500";
+                    li.textContent = translations[lang].noNotes;
+                    savedRecordsList.appendChild(li);
+                } else {
+                    notes.forEach(note => {
+                        const li = document.createElement('li');
+                        li.className = "bg-white p-4 rounded-lg shadow-sm";
+                        
+                        const text = document.createElement('p');
+                        text.textContent = note.text;
+                        text.className = "text-gray-800";
+                        li.appendChild(text);
+
+                        if (note.createdAt) {
+                            const timestamp = document.createElement('span');
+                            timestamp.textContent = note.createdAt.toDate().toLocaleString(langMap[lang]);
+                            timestamp.className = "text-xs text-gray-500 mt-1 block";
+                            li.appendChild(timestamp);
+                        }
+                        savedRecordsList.appendChild(li);
+                    });
+                }
+
+            }, (error) => {
+                console.error("onSnapshot error:", error);
+                savedRecordsList.innerHTML = `<li class="bg-red-100 text-red-700 p-4 rounded-lg">Error loading notes.</li>`;
+            });
+
+            // Initial load
+            updateLanguage(languageSwitcher.value);
+        }
+
+        // --- Firebase Configuration & Initialization ---
+        // (This code runs after all functions above are defined)
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        let app, auth, db;
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            setLogLevel('debug'); // Optional: for detailed Firestore logs
+        } catch (e) {
+            console.error("Firebase initialization error:", e);
+            document.body.innerHTML = "<h1>Error initializing the app. Please check console.</h1>";
+        }
+
+        // --- Firebase Authentication Listener ---
+        // This listener will call runApp *after* auth state is confirmed
+        // and *after* runApp has been defined (since it's in the same scope).
+        onAuthStateChanged(auth, async (user) => {
+            let currentUserId;
+            if (user) {
+                console.log("User is signed in:", user.uid);
+                currentUserId = user.uid;
+            } else {
+                console.log("User is not signed in. Attempting auth...");
+                try {
+                    // Try to sign in with the provided token
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        // Fallback to anonymous sign-in
+                        await signInAnonymously(auth);
+                    }
+                    currentUserId = auth.currentUser?.uid;
+                } catch (error) {
+                    console.error("Authentication error:", error);
+                    document.getElementById('loading-placeholder').textContent = "Authentication failed. Cannot load or save notes.";
+                }
+            }
+
+            // If we have a user, run the main app logic
+            if (currentUserId && db) {
+                // Pass db, auth, userId to the main app function
+                runApp(auth, db, currentUserId, appId);
+            } else {
+                 console.error("Could not get User ID or DB. App cannot start.");
+                 document.getElementById('loading-placeholder').textContent = "Error: Could not get User ID or DB.";
+            }
+        });
     </script>
 
 </body>
