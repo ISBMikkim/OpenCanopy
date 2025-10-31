@@ -146,7 +146,7 @@
     <script type="module">
         // --- Firebase Imports ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, onSnapshot, setLogLevel, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Translation Data ---
@@ -197,7 +197,7 @@
             },
             ja: {
                 mainTitle: "最初のミッション！",
-                missionTitle: "1. ウォーキングパートナーに自己紹介をしましょう！",
+                missionTitle: "1. ウォー킹パートナーに自己紹介をしましょう！",
                 missionDesc: "下のボックスにあなたのことを少し書いてください。 趣味は何ですか？",
                 placeholder: "私の名前は...で、...するのが好きです...",
                 modalTitle: "通知",
@@ -313,14 +313,14 @@
 
         // --- Main App Function (Definition) ---
         // This function contains all the logic that depends on Firebase (db, auth, userId)
-        function runApp(auth, db, userId, appId) {
-            console.log("App is running for user:", userId);
+        function runApp(auth, db, userId, appId) { // Added appId
+            console.log("App is running for user:", userId, "on app:", appId);
 
             // Enable the save button now that auth is ready
             saveButton.disabled = false;
             
-            // Define the Firestore collection path for this user
-            // *** CHANGED: Updated collection path to be public ***
+            // Define the Firestore collection path
+            // *** FIXED: Use the correct public path with appId ***
             const notesCollectionPath = `artifacts/${appId}/public/data/introduce`;
 
             // --- Functions ---
@@ -498,19 +498,41 @@
 
         // --- Firebase Configuration & Initialization ---
         
-        // Use Canvas environment variables
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        // ** 1. FOR GITHUB/EXTERNAL DEPLOYMENT: PASTE YOUR CONFIG HERE **
+        // Get this from your Firebase project settings (click "Add app" > "Web")
+        const manualFirebaseConfig = {
+            
+        
+  apiKey: "AIzaSyDRPKmza6cNgnxiT6qo4YHk4uiHue2j8ug",
+  authDomain: "isbopencanopy-f92d3.firebaseapp.com",
+  projectId: "isbopencanopy-f92d3",
+  storageBucket: "isbopencanopy-f92d3.firebasestorage.app",
+  messagingSenderId: "253275410619",
+  appId: "1:253275410619:web:e20db952dc1f12f54f199e"
+};
+       
+        // ***************************************************************
+
+        // Check for Canvas environment variables
+        const canvasConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const canvasAppId = typeof __app_id !== 'undefined' ? __app_id : null;
+        const canvasAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Determine which config and appId to use
+        // Use Canvas config if available, otherwise fall back to manual config
+        const effectiveConfig = canvasConfig || manualFirebaseConfig;
+        // Use Canvas appId if available, otherwise fall back to manual config's appId (or a default)
+        const effectiveAppId = canvasAppId || effectiveConfig.appId || 'default-app-id';
         
         let app, auth, db;
         try {
-            // Check if config is empty (which happens outside Canvas, e.g., GitHub)
-            if (!firebaseConfig.apiKey) {
-                // This error will be caught by the catch block
-                throw new Error("Firebase config is missing or invalid. App cannot start.");
+            // Check if the chosen config is still the placeholder
+            if (!effectiveConfig || effectiveConfig.apiKey === "YOUR_API_KEY") {
+                // Modified error message to be clearer
+                throw new Error("Firebase config is missing. If on GitHub, paste your config object into `manualFirebaseConfig` in the script.");
             }
             
-            app = initializeApp(firebaseConfig);
+            app = initializeApp(effectiveConfig);
             auth = getAuth(app);
             db = getFirestore(app);
             setLogLevel('debug'); // Optional: for detailed Firestore logs
@@ -525,11 +547,11 @@
                 } else {
                     console.log("User is not signed in. Attempting auth...");
                     try {
-                        // Check for Canvas token first
-                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                            await signInWithCustomToken(auth, __initial_auth_token);
+                        // Use Canvas token if available (in Canvas)
+                        if (canvasAuthToken) {
+                            await signInWithCustomToken(auth, canvasAuthToken);
                         } else {
-                            // Fallback to anonymous sign-in
+                            // Fallback to anonymous sign-in (on GitHub)
                             await signInAnonymously(auth);
                         }
                         currentUserId = auth.currentUser?.uid;
@@ -541,8 +563,8 @@
 
                 // If we have a user, run the main app logic
                 if (currentUserId && db) {
-                    // Pass 'appId' to runApp
-                    runApp(auth, db, currentUserId, appId);
+                    // Pass db, auth, userId, AND the effectiveAppId
+                    runApp(auth, db, currentUserId, effectiveAppId);
                 } else {
                     console.error("Could not get User ID or DB. App cannot start.");
                     document.getElementById('loading-placeholder').textContent = "Error: Could not get User ID or DB.";
