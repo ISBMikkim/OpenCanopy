@@ -27,7 +27,9 @@
             onSnapshot, 
             Timestamp,
             increment,
-            serverTimestamp
+            serverTimestamp,
+            query, // (NEW)
+            orderBy // (NEW)
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { 
             getStorage, 
@@ -189,10 +191,47 @@
 
         // --- 2. 게시물 로드 (실시간) ---
         function loadPosts() {
-            const postsRef = collection(db, postsCollectionPath);
+            // (MODIFIED) postsRef에 orderBy('createdAt') 쿼리 추가
+            // Firestore에서 직접 정렬하며, docChanges()를 사용하기 위해 필요합니다.
+            const postsRef = query(collection(db, postsCollectionPath), orderBy("createdAt", "asc"));
             
             // onSnapshot으로 실시간 변경 감지
             onSnapshot(postsRef, (snapshot) => {
+                
+                // (MODIFIED) "모두 지우고 다시 그리기" 대신 docChanges() 사용
+                snapshot.docChanges().forEach((change) => {
+                    const postData = { id: change.doc.id, ...change.doc.data() };
+
+                    if (change.type === "added") {
+                        // 새 게시물이 추가됨 (renderPost가 addPostCard 앞에 추가)
+                        renderPost(postData);
+                    }
+                    if (change.type === "modified") {
+                        // 기존 게시물(이모지)이 수정됨
+                        // 1. 기존 카드 찾기
+                        const existingCard = document.querySelector(`.post-card[data-post-id="${postData.id}"]`);
+                        if (existingCard) {
+                            // 2. 이모지 카운트만 업데이트
+                            const reactionsContainer = existingCard.querySelector('.reactions-container');
+                            ['heart', 'smile'].forEach(emojiName => {
+                                const countSpan = reactionsContainer.querySelector(`[data-emoji="${emojiName}"] .count`);
+                                if(countSpan) {
+                                    countSpan.textContent = postData.reactions[emojiName] || 0;
+                                }
+                            });
+                            // (참고) 설명 등이 수정될 경우, 이 부분에서 더 많은 UI를 업데이트할 수 있습니다.
+                        }
+                    }
+                    if (change.type === "removed") {
+                        // 게시물이 삭제됨
+                        const existingCard = document.querySelector(`.post-card[data-post-id="${postData.id}"]`);
+                        if (existingCard) {
+                            existingCard.remove();
+                        }
+                    }
+                });
+
+                /* (REMOVED) 기존 "모두 지우기" 로직
                 // 기존 게시물 카드 모두 삭제 (추가 카드 제외)
                 document.querySelectorAll('.post-card').forEach(card => card.remove());
                 
@@ -214,6 +253,7 @@
                 posts.forEach(post => {
                     renderPost(post);
                 });
+                */
             });
         }
 
@@ -1010,4 +1050,5 @@
 
 </body>
 </html>
+
 
