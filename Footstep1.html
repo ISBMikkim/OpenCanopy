@@ -65,6 +65,9 @@
             /* Allow vertical scrolling but capture horizontal swipe */
             touch-action: pan-y; 
             cursor: grab;
+            /* *** ADDED: Prevent text selection during drag *** */
+            user-select: none;
+            -webkit-user-select: none;
         }
         .note-item.is-dragging .note-content {
             transition: none; /* No transition while dragging */
@@ -287,8 +290,8 @@
                 speechListening: "Je vous écoute... Parlez maintenant.",
                 speechError: "Erreur de reconnaissance vocale. Veuillez réessayer.",
                 speechNoMic: "Accès au microphone refusé. Veuillez autoriser l'accès au microphone dans les paramètres de votre navigateur.",
-                speechNotSupported: "La reconnaissance vocale n'est pas prise en charge par votre navigateur. Essayez d'utiliser Chrome ou Safari.",
-                ttsNotSupported: "La synthèse vocale n'est pas prise en charge par votre navigateur.",
+                speechNotSupported: "La reconnaissance vocale n'est not prise en charge par votre navigateur. Essayez d'utiliser Chrome ou Safari.",
+                ttsNotSupported: "La synthèse vocale n'est not prise en charge par votre navigateur.",
                 saveButton: "Enregistrer",
                 saveSuccessTitle: "🎉 Bon Travail !",
                 saveSuccessMessage: "Vos notes de mission ont été enregistrées !",
@@ -565,7 +568,7 @@
                 savedRecordsList.innerHTML = `<li class="bg-red-100 text-red-700 p-4 rounded-lg">Error loading notes.</li>`;
             });
 
-            // --- SWIPE AND DELETE LOGIC ---
+            // --- SWIPE AND DELETE LOGIC (REVISED FOR MOUSE DRAG) ---
             
             let startX = 0;
             let currentX = 0;
@@ -604,26 +607,8 @@
                 }
             });
 
-            // 2. Pointer Down (Start Swipe/Drag)
-            savedRecordsList.addEventListener('pointerdown', (e) => {
-                const noteContent = e.target.closest('.note-content');
-                if (!noteContent || e.button !== 0) return; // Not on content or not left click
-
-                isDragging = true;
-                startX = e.clientX;
-                const currentLi = noteContent.closest('.note-item');
-                
-                // If we click a new item, close the old one
-                if (swipedItem && swipedItem !== currentLi) {
-                    closeSwipedItem();
-                }
-                swipedItem = currentLi;
-                
-                swipedItem.classList.add('is-dragging');
-            });
-
-            // 3. Pointer Move (Dragging)
-            savedRecordsList.addEventListener('pointermove', (e) => {
+            // --- Handlers for document-level drag ---
+            const onPointerMove = (e) => {
                 if (!isDragging || !swipedItem) return;
 
                 currentX = e.clientX;
@@ -635,9 +620,8 @@
 
                 const content = swipedItem.querySelector('.note-content');
                 if (content) content.style.transform = `translateX(${diff}px)`;
-            });
+            };
 
-            // 4. Pointer End (Up, Leave, Cancel)
             const onPointerEnd = (e) => {
                 if (!isDragging || !swipedItem) {
                     isDragging = false;
@@ -660,14 +644,42 @@
                     swipedItem = null;
                 }
                 
-                // Reset startX
+                // Reset startX and currentX
                 startX = 0;
                 currentX = 0;
-            };
 
-            savedRecordsList.addEventListener('pointerup', onPointerEnd);
-            savedRecordsList.addEventListener('pointerleave', onPointerEnd);
-            savedRecordsList.addEventListener('pointercancel', onPointerEnd);
+                // Remove document-level listeners
+                document.removeEventListener('pointermove', onPointerMove);
+                document.removeEventListener('pointerup', onPointerEnd);
+                document.removeEventListener('pointercancel', onPointerEnd);
+            };
+            
+            // 2. Pointer Down (Start Swipe/Drag)
+            savedRecordsList.addEventListener('pointerdown', (e) => {
+                const noteContent = e.target.closest('.note-content');
+                if (!noteContent || e.button !== 0) return; // Not on content or not left click
+
+                // Prevent default browser drag (text selection)
+                e.preventDefault();
+
+                isDragging = true;
+                startX = e.clientX;
+                currentX = e.clientX; // Initialize currentX
+                const currentLi = noteContent.closest('.note-item');
+                
+                // If we click a new item, close the old one
+                if (swipedItem && swipedItem !== currentLi) {
+                    closeSwipedItem();
+                }
+                swipedItem = currentLi;
+                
+                swipedItem.classList.add('is-dragging');
+
+                // Add document-level listeners
+                document.addEventListener('pointermove', onPointerMove);
+                document.addEventListener('pointerup', onPointerEnd);
+                document.addEventListener('pointercancel', onPointerEnd);
+            });
             
             // Close swiped item if clicking anywhere else
             document.addEventListener('click', (e) => {
@@ -701,14 +713,16 @@
         const canvasAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
         // Determine which config and appId to use
+        // Use Canvas config if available, otherwise fall back to manual config
         const effectiveConfig = canvasConfig || manualFirebaseConfig;
+        // Use Canvas appId if available, otherwise fall back to manual config's appId (or a default)
         const effectiveAppId = canvasAppId || effectiveConfig.appId || 'default-app-id';
         
         let app, auth, db;
         try {
             // Check if the chosen config is still the placeholder (it shouldn't be anymore)
-            if (!effectiveConfig || effectiveConfig.apiKey === "YOUR_API_KEY") {
-                // This error shouldn't happen now, but good to keep as a safeguard
+            if (!effectiveConfig || (effectiveConfig.apiKey === "YOUR_API_KEY" && !canvasConfig)) {
+                 // Throw error only if no canvasConfig AND manualConfig is still placeholder
                 throw new Error("Firebase config is missing. If on GitHub, paste your config object into `manualFirebaseConfig` in the script.");
             }
             
