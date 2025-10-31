@@ -42,10 +42,63 @@
                 box-shadow: 0 0 0 0 rgba(29, 78, 216, 0);
             }
         }
-        /* Style for saved notes */
-        #saved-records-list li {
-            border-left: 4px solid #3b82f6; /* Blue left border */
+        
+        /* --- Styles for Swipe-to-Delete --- */
+        
+        /* 1. The list item container */
+        .note-item {
+            position: relative;
+            overflow: hidden; /* This hides the delete button */
+            border-radius: 0.5rem; /* rounded-lg */
+            background-color: #ffffff;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
         }
+
+        /* 2. The note content that moves */
+        .note-content {
+            position: relative;
+            z-index: 10;
+            background-color: #ffffff;
+            padding: 1rem; /* p-4 */
+            border-left: 4px solid #3b82f6;
+            transition: transform 0.3s ease-out;
+            /* Allow vertical scrolling but capture horizontal swipe */
+            touch-action: pan-y; 
+            cursor: grab;
+        }
+        .note-item.is-dragging .note-content {
+            transition: none; /* No transition while dragging */
+            cursor: grabbing;
+        }
+
+        /* 3. The hidden delete action container */
+        .note-delete-action {
+            position: absolute;
+            top: 0;
+            right: 0;
+            height: 100%;
+            width: 96px; /* w-24 */
+            z-index: 0; /* Behind the content */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #ef4444; /* bg-red-500 */
+        }
+        .delete-note-button {
+            color: white;
+            font-weight: 500;
+            padding-left: 1rem;
+            padding-right: 1rem;
+            /* Make it fill the red area for easier clicks */
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* 4. The "swiped open" state */
+        .note-item.is-swiped .note-content {
+            transform: translateX(-96px); /* Move content left by width of delete button */
+        }
+
     </style>
 </head>
 <!-- Added flex-col and padding for the new list -->
@@ -147,7 +200,8 @@
         // --- Firebase Imports ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, onSnapshot, setLogLevel, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // *** ADDED 'doc' and 'deleteDoc' ***
+        import { getFirestore, collection, addDoc, query, onSnapshot, setLogLevel, serverTimestamp, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Translation Data ---
         const translations = {
@@ -171,7 +225,9 @@
                 saveEmpty: "There is no text to save!",
                 savedRecordsTitle: "My Saved Notes",
                 loadingNotes: "Loading saved notes...",
-                noNotes: "No notes saved yet. Type something and click Save!"
+                noNotes: "No notes saved yet. Type something and click Save!",
+                deleteButton: "Delete",
+                deleteError: "Error deleting note."
             },
             ko: {
                 mainTitle: "첫 번째 미션!",
@@ -193,7 +249,9 @@
                 saveEmpty: "저장할 내용이 없어요!",
                 savedRecordsTitle: "내가 저장한 노트",
                 loadingNotes: "저장된 노트를 불러오는 중...",
-                noNotes: "아직 저장된 노트가 없어요. 무언가를 쓰고 '저장하기'를 눌러보세요!"
+                noNotes: "아직 저장된 노트가 없어요. 무언가를 쓰고 '저장하기'를 눌러보세요!",
+                deleteButton: "삭제",
+                deleteError: "노트 삭제 중 오류 발생."
             },
             ja: {
                 mainTitle: "最初のミッション！",
@@ -215,7 +273,9 @@
                 saveEmpty: "保存するテキストがありません！",
                 savedRecordsTitle: "保存したノート",
                 loadingNotes: "保存されたノートを読み込み中...",
-                noNotes: "まだ保存されたノートはありません。何か入力して「保存」をクリックしてください。"
+                noNotes: "まだ保存されたノートはありません。何か入力して「保存」をクリックしてください。",
+                deleteButton: "削除",
+                deleteError: "ノートの削除エラー。"
             },
             fr: {
                 mainTitle: "Votre Première Mission !",
@@ -237,7 +297,9 @@
                 saveEmpty: "Il n'y a pas de texte à enregistrer !",
                 savedRecordsTitle: "Mes Notes Enregistrées",
                 loadingNotes: "Chargement des notes...",
-                noNotes: "Aucune note enregistrée pour le moment. Écrivez quelque chose et cliquez sur Enregistrer !"
+                noNotes: "Aucune note enregistrée pour le moment. Écrivez quelque chose et cliquez sur Enregistrer !",
+                deleteButton: "Supprimer",
+                deleteError: "Erreur de suppression."
             }
         };
 
@@ -320,7 +382,6 @@
             saveButton.disabled = false;
             
             // Define the Firestore collection path
-            // *** FIXED: Use the correct public path with appId ***
             const notesCollectionPath = `artifacts/${appId}/public/data/introduce`;
 
             // --- Functions ---
@@ -344,6 +405,11 @@
                 if (recognition) {
                     recognition.lang = langMap[lang] || 'en-US';
                 }
+                
+                // Update existing delete buttons
+                document.querySelectorAll('.delete-note-button').forEach(btn => {
+                    btn.textContent = t.deleteButton;
+                });
             }
 
             // Function to show custom modal (alert)
@@ -392,7 +458,6 @@
                 const t = translations[lang];
                 const promptText = `${t.mainTitle} ${t.missionTitle} ${t.missionDesc}`;
                 window.speechSynthesis.cancel();
-                // FIXED: Corrected typo SpeechSynthesisUterance -> SpeechSynthesisUtterance
                 const utterance = new SpeechSynthesisUtterance(promptText);
                 utterance.lang = langMap[lang] || 'en-US';
                 window.speechSynthesis.speak(utterance);
@@ -413,15 +478,12 @@
                 saveButton.disabled = true;
 
                 try {
-                    // Add a new document to the public collection
-                    // We still include the userId to know *who* posted it
                     await addDoc(collection(db, notesCollectionPath), {
                         text: textToSave,
-                        authorId: userId, // Keep track of who saved it
-                        createdAt: serverTimestamp() // Use server timestamp for reliable ordering
+                        authorId: userId, 
+                        createdAt: serverTimestamp() 
                     });
                     
-                    // Show success
                     showModal(t.saveSuccessTitle, t.saveSuccessMessage);
                     missionText.value = ""; // Clear text area
 
@@ -441,56 +503,179 @@
             });
 
             // --- Firestore Real-time Listener ---
-            // Listen for changes in the notes collection
-            const q = query(collection(db, notesCollectionPath));
-            
-            onSnapshot(q, (snapshot) => {
+            onSnapshot(query(collection(db, notesCollectionPath)), (snapshot) => {
                 const notes = [];
                 snapshot.forEach((doc) => {
                     notes.push({ id: doc.id, ...doc.data() });
                 });
 
-                // Sort notes by createdAt timestamp (newest first)
-                // Handle null timestamps (which can happen briefly on serverTimestamp)
                 notes.sort((a, b) => {
                     const timeA = a.createdAt?.toMillis() || 0;
                     const timeB = b.createdAt?.toMillis() || 0;
                     return timeB - timeA;
                 });
 
-                // Render notes to the list
                 savedRecordsList.innerHTML = ""; // Clear the list
                 const lang = languageSwitcher.value;
+                const t = translations[lang];
 
                 if (notes.length === 0) {
                     const li = document.createElement('li');
                     li.className = "bg-white p-4 rounded-lg shadow text-center text-gray-500";
-                    li.textContent = translations[lang].noNotes;
+                    li.textContent = t.noNotes;
                     savedRecordsList.appendChild(li);
                 } else {
                     notes.forEach(note => {
                         const li = document.createElement('li');
-                        li.className = "bg-white p-4 rounded-lg shadow-sm";
+                        li.className = "note-item"; // Use new class for swipe styling
+                        li.dataset.docId = note.id;
+
+                        // Create delete action
+                        const deleteAction = document.createElement('div');
+                        deleteAction.className = "note-delete-action";
+                        const deleteButton = document.createElement('button');
+                        deleteButton.className = "delete-note-button";
+                        deleteButton.dataset.id = note.id;
+                        deleteButton.textContent = t.deleteButton; // Use translation
+                        deleteAction.appendChild(deleteButton);
+                        li.appendChild(deleteAction);
+
+                        // Create content wrapper
+                        const content = document.createElement('div');
+                        content.className = "note-content";
                         
                         const text = document.createElement('p');
                         text.textContent = note.text;
                         text.className = "text-gray-800";
-                        li.appendChild(text);
+                        content.appendChild(text);
 
                         if (note.createdAt) {
                             const timestamp = document.createElement('span');
                             timestamp.textContent = note.createdAt.toDate().toLocaleString(langMap[lang]);
                             timestamp.className = "text-xs text-gray-500 mt-1 block";
-                            li.appendChild(timestamp);
+                            content.appendChild(timestamp);
                         }
+                        li.appendChild(content);
+
                         savedRecordsList.appendChild(li);
                     });
                 }
-
             }, (error) => {
                 console.error("onSnapshot error:", error);
                 savedRecordsList.innerHTML = `<li class="bg-red-100 text-red-700 p-4 rounded-lg">Error loading notes.</li>`;
             });
+
+            // --- SWIPE AND DELETE LOGIC ---
+            
+            let startX = 0;
+            let currentX = 0;
+            let isDragging = false;
+            let swipedItem = null; // The <li> element that is currently swiped
+
+            // Function to close any open swipe menu
+            const closeSwipedItem = () => {
+                if (swipedItem) {
+                    swipedItem.classList.remove('is-swiped');
+                    const content = swipedItem.querySelector('.note-content');
+                    if (content) content.style.transform = 'translateX(0px)';
+                    swipedItem = null;
+                }
+            };
+
+            // 1. Click Listener (for Delete Button)
+            savedRecordsList.addEventListener('click', async (e) => {
+                if (e.target.classList.contains('delete-note-button')) {
+                    const docId = e.target.dataset.id;
+                    if (!docId) return;
+
+                    const lang = languageSwitcher.value;
+                    const t = translations[lang];
+
+                    try {
+                        const docRef = doc(db, notesCollectionPath, docId);
+                        await deleteDoc(docRef);
+                        // onSnapshot will automatically update the UI
+                        // closeSwipedItem() will be called implicitly as the item is removed
+                        swipedItem = null;
+                    } catch (error) {
+                        console.error("Error deleting document: ", error);
+                        showModal(t.modalTitle, t.deleteError);
+                    }
+                }
+            });
+
+            // 2. Pointer Down (Start Swipe/Drag)
+            savedRecordsList.addEventListener('pointerdown', (e) => {
+                const noteContent = e.target.closest('.note-content');
+                if (!noteContent || e.button !== 0) return; // Not on content or not left click
+
+                isDragging = true;
+                startX = e.clientX;
+                const currentLi = noteContent.closest('.note-item');
+                
+                // If we click a new item, close the old one
+                if (swipedItem && swipedItem !== currentLi) {
+                    closeSwipedItem();
+                }
+                swipedItem = currentLi;
+                
+                swipedItem.classList.add('is-dragging');
+            });
+
+            // 3. Pointer Move (Dragging)
+            savedRecordsList.addEventListener('pointermove', (e) => {
+                if (!isDragging || !swipedItem) return;
+
+                currentX = e.clientX;
+                let diff = currentX - startX;
+
+                // Only allow dragging left, max 96px
+                if (diff > 0) diff = 0; 
+                if (diff < -96) diff = -96; // 96px is w-24
+
+                const content = swipedItem.querySelector('.note-content');
+                if (content) content.style.transform = `translateX(${diff}px)`;
+            });
+
+            // 4. Pointer End (Up, Leave, Cancel)
+            const onPointerEnd = (e) => {
+                if (!isDragging || !swipedItem) {
+                    isDragging = false;
+                    return;
+                }
+
+                isDragging = false;
+                swipedItem.classList.remove('is-dragging');
+                const content = swipedItem.querySelector('.note-content');
+                if (!content) return;
+                
+                const diff = currentX - startX;
+
+                // If swiped more than 40px left, snap open
+                if (diff < -40) {
+                    swipedItem.classList.add('is-swiped');
+                } else {
+                    // Otherwise, snap closed
+                    swipedItem.classList.remove('is-swiped');
+                    swipedItem = null;
+                }
+                
+                // Reset startX
+                startX = 0;
+                currentX = 0;
+            };
+
+            savedRecordsList.addEventListener('pointerup', onPointerEnd);
+            savedRecordsList.addEventListener('pointerleave', onPointerEnd);
+            savedRecordsList.addEventListener('pointercancel', onPointerEnd);
+            
+            // Close swiped item if clicking anywhere else
+            document.addEventListener('click', (e) => {
+                if (swipedItem && !savedRecordsList.contains(e.target)) {
+                    closeSwipedItem();
+                }
+            }, true); // Use capture phase
+
 
             // Initial load
             updateLanguage(languageSwitcher.value);
@@ -499,16 +684,15 @@
         // --- Firebase Configuration & Initialization ---
         
         // ** 1. FOR GITHUB/EXTERNAL DEPLOYMENT: PASTE YOUR CONFIG HERE **
-        // Get this from your Firebase project settings (click "Add app" > "Web")
+        // UPDATED with your provided config
         const manualFirebaseConfig = {
-  apiKey: "AIzaSyDRPKmza6cNgnxiT6qo4YHk4uiHue2j8ug",
-  authDomain: "isbopencanopy-f92d3.firebaseapp.com",
-  projectId: "isbopencanopy-f92d3",
-  storageBucket: "isbopencanopy-f92d3.firebasestorage.app",
-  messagingSenderId: "253275410619",
-  appId: "1:253275410619:web:e20db952dc1f12f54f199e"
-};
-
+            apiKey: "AIzaSyDRPKmza6cNgnxiT6qo4YHk4uiHue2j8ug",
+            authDomain: "isbopencanopy-f92d3.firebaseapp.com",
+            projectId: "isbopencanopy-f92d3",
+            storageBucket: "isbopencanopy-f92d3.firebasestorage.app", // Used your value
+            messagingSenderId: "253275410619",
+            appId: "1:253275410619:web:e20db952dc1f12f54f199e"
+        };
         // ***************************************************************
 
         // Check for Canvas environment variables
@@ -517,26 +701,23 @@
         const canvasAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
         // Determine which config and appId to use
-        // Use Canvas config if available, otherwise fall back to manual config
         const effectiveConfig = canvasConfig || manualFirebaseConfig;
-        // Use Canvas appId if available, otherwise fall back to manual config's appId (or a default)
         const effectiveAppId = canvasAppId || effectiveConfig.appId || 'default-app-id';
         
         let app, auth, db;
         try {
-            // Check if the chosen config is still the placeholder
+            // Check if the chosen config is still the placeholder (it shouldn't be anymore)
             if (!effectiveConfig || effectiveConfig.apiKey === "YOUR_API_KEY") {
-                // Modified error message to be clearer
+                // This error shouldn't happen now, but good to keep as a safeguard
                 throw new Error("Firebase config is missing. If on GitHub, paste your config object into `manualFirebaseConfig` in the script.");
             }
             
             app = initializeApp(effectiveConfig);
             auth = getAuth(app);
             db = getFirestore(app);
-            setLogLevel('debug'); // Optional: for detailed Firestore logs
+            setLogLevel('debug'); 
 
             // --- Firebase Authentication Listener ---
-            // This will now run only if initialization succeeds
             onAuthStateChanged(auth, async (user) => {
                 let currentUserId;
                 if (user) {
@@ -545,11 +726,9 @@
                 } else {
                     console.log("User is not signed in. Attempting auth...");
                     try {
-                        // Use Canvas token if available (in Canvas)
                         if (canvasAuthToken) {
                             await signInWithCustomToken(auth, canvasAuthToken);
                         } else {
-                            // Fallback to anonymous sign-in (on GitHub)
                             await signInAnonymously(auth);
                         }
                         currentUserId = auth.currentUser?.uid;
@@ -559,9 +738,7 @@
                     }
                 }
 
-                // If we have a user, run the main app logic
                 if (currentUserId && db) {
-                    // Pass db, auth, userId, AND the effectiveAppId
                     runApp(auth, db, currentUserId, effectiveAppId);
                 } else {
                     console.error("Could not get User ID or DB. App cannot start.");
@@ -572,7 +749,6 @@
         } catch (e) {
             console.error("Firebase initialization error:", e);
             document.body.innerHTML = "<h1>Error initializing the app. Please check console.</h1>";
-            // Also display the specific error message on the page
             const errorElement = document.createElement('p');
             errorElement.textContent = "Details: " + e.message;
             errorElement.className = "text-red-500 text-center";
