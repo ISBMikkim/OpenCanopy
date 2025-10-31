@@ -68,9 +68,9 @@
         <!-- Speaker button (Moved to top right of card) -->
         <button id="speaker-button" class="absolute top-8 right-8 bg-blue-600 text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
             aria-label="Read text aloud">
-            <!-- Speaker SVG icon -->
+            <!-- Speaker SVG icon (FIXED: Corrected 'd' attribute path) -->
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.S53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
             </svg>
         </button>
 
@@ -143,10 +143,6 @@
         </div>
     </div>
 
-    <!-- 
-      FIX: Merged both <script type="module"> blocks into one to resolve ReferenceError.
-      The runApp function is now defined in the same module scope *before* onAuthStateChanged tries to call it.
-    -->
     <script type="module">
         // --- Firebase Imports ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -201,7 +197,7 @@
             },
             ja: {
                 mainTitle: "最初のミッション！",
-                missionTitle: "1. ウォーキングパートナーに自己紹介をしましょう！",
+                missionTitle: "1. ウォー킹パートナーに自己紹介をしましょう！",
                 missionDesc: "下のボックスにあなたのことを少し書いてください。 趣味は何ですか？",
                 placeholder: "私の名前は...で、...するのが好きです...",
                 modalTitle: "通知",
@@ -507,45 +503,51 @@
             auth = getAuth(app);
             db = getFirestore(app);
             setLogLevel('debug'); // Optional: for detailed Firestore logs
+
+            // --- Firebase Authentication Listener ---
+            // *** MOVED INSIDE THE TRY BLOCK ***
+            // This ensures `auth` is defined when we use it.
+            onAuthStateChanged(auth, async (user) => {
+                let currentUserId;
+                if (user) {
+                    console.log("User is signed in:", user.uid);
+                    currentUserId = user.uid;
+                } else {
+                    console.log("User is not signed in. Attempting auth...");
+                    try {
+                        // Try to sign in with the provided token
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            // Fallback to anonymous sign-in
+                            await signInAnonymously(auth);
+                        }
+                        currentUserId = auth.currentUser?.uid;
+                    } catch (error) {
+                        console.error("Authentication error:", error);
+                        document.getElementById('loading-placeholder').textContent = "Authentication failed. Cannot load or save notes.";
+                    }
+                }
+
+                // If we have a user, run the main app logic
+                if (currentUserId && db) {
+                    // Pass db, auth, userId to the main app function
+                    runApp(auth, db, currentUserId, appId);
+                } else {
+                    console.error("Could not get User ID or DB. App cannot start.");
+                    document.getElementById('loading-placeholder').textContent = "Error: Could not get User ID or DB.";
+                }
+            });
+
         } catch (e) {
             console.error("Firebase initialization error:", e);
             document.body.innerHTML = "<h1>Error initializing the app. Please check console.</h1>";
+            // Also display the specific error message on the page
+            const errorElement = document.createElement('p');
+            errorElement.textContent = "Details: " + e.message;
+            errorElement.className = "text-red-500 text-center";
+            document.body.appendChild(errorElement);
         }
-
-        // --- Firebase Authentication Listener ---
-        // This listener will call runApp *after* auth state is confirmed
-        // and *after* runApp has been defined (since it's in the same scope).
-        onAuthStateChanged(auth, async (user) => {
-            let currentUserId;
-            if (user) {
-                console.log("User is signed in:", user.uid);
-                currentUserId = user.uid;
-            } else {
-                console.log("User is not signed in. Attempting auth...");
-                try {
-                    // Try to sign in with the provided token
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        // Fallback to anonymous sign-in
-                        await signInAnonymously(auth);
-                    }
-                    currentUserId = auth.currentUser?.uid;
-                } catch (error) {
-                    console.error("Authentication error:", error);
-                    document.getElementById('loading-placeholder').textContent = "Authentication failed. Cannot load or save notes.";
-                }
-            }
-
-            // If we have a user, run the main app logic
-            if (currentUserId && db) {
-                // Pass db, auth, userId to the main app function
-                runApp(auth, db, currentUserId, appId);
-            } else {
-                 console.error("Could not get User ID or DB. App cannot start.");
-                 document.getElementById('loading-placeholder').textContent = "Error: Could not get User ID or DB.";
-            }
-        });
     </script>
 
 </body>
