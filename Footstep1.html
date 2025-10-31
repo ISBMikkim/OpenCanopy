@@ -68,7 +68,7 @@
         <!-- Speaker button (Moved to top right of card) -->
         <button id="speaker-button" class="absolute top-8 right-8 bg-blue-600 text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
             aria-label="Read text aloud">
-            <!-- Speaker SVG icon (FIXED: Corrected 'd' attribute path) -->
+            <!-- Speaker SVG icon -->
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
             </svg>
@@ -197,7 +197,7 @@
             },
             ja: {
                 mainTitle: "最初のミッション！",
-                missionTitle: "1. ウォー킹パートナーに自己紹介をしましょう！",
+                missionTitle: "1. ウォーキングパートナーに自己紹介をしましょう！",
                 missionDesc: "下のボックスにあなたのことを少し書いてください。 趣味は何ですか？",
                 placeholder: "私の名前は...で、...するのが好きです...",
                 modalTitle: "通知",
@@ -320,7 +320,8 @@
             saveButton.disabled = false;
             
             // Define the Firestore collection path for this user
-            const notesCollectionPath = `artifacts/${appId}/users/${userId}/mission_notes`;
+            // *** CHANGED: Updated collection path to be public ***
+            const notesCollectionPath = `artifacts/${appId}/public/data/introduce`;
 
             // --- Functions ---
 
@@ -391,6 +392,7 @@
                 const t = translations[lang];
                 const promptText = `${t.mainTitle} ${t.missionTitle} ${t.missionDesc}`;
                 window.speechSynthesis.cancel();
+                // FIXED: Corrected typo SpeechSynthesisUterance -> SpeechSynthesisUtterance
                 const utterance = new SpeechSynthesisUtterance(promptText);
                 utterance.lang = langMap[lang] || 'en-US';
                 window.speechSynthesis.speak(utterance);
@@ -411,9 +413,11 @@
                 saveButton.disabled = true;
 
                 try {
-                    // Add a new document to the user's private collection
+                    // Add a new document to the public collection
+                    // We still include the userId to know *who* posted it
                     await addDoc(collection(db, notesCollectionPath), {
                         text: textToSave,
+                        authorId: userId, // Keep track of who saved it
                         createdAt: serverTimestamp() // Use server timestamp for reliable ordering
                     });
                     
@@ -493,20 +497,26 @@
         }
 
         // --- Firebase Configuration & Initialization ---
-        // (This code runs after all functions above are defined)
+        
+        // Use Canvas environment variables
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
+        
         let app, auth, db;
         try {
+            // Check if config is empty (which happens outside Canvas, e.g., GitHub)
+            if (!firebaseConfig.apiKey) {
+                // This error will be caught by the catch block
+                throw new Error("Firebase config is missing or invalid. App cannot start.");
+            }
+            
             app = initializeApp(firebaseConfig);
             auth = getAuth(app);
             db = getFirestore(app);
             setLogLevel('debug'); // Optional: for detailed Firestore logs
 
             // --- Firebase Authentication Listener ---
-            // *** MOVED INSIDE THE TRY BLOCK ***
-            // This ensures `auth` is defined when we use it.
+            // This will now run only if initialization succeeds
             onAuthStateChanged(auth, async (user) => {
                 let currentUserId;
                 if (user) {
@@ -515,7 +525,7 @@
                 } else {
                     console.log("User is not signed in. Attempting auth...");
                     try {
-                        // Try to sign in with the provided token
+                        // Check for Canvas token first
                         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                             await signInWithCustomToken(auth, __initial_auth_token);
                         } else {
@@ -531,7 +541,7 @@
 
                 // If we have a user, run the main app logic
                 if (currentUserId && db) {
-                    // Pass db, auth, userId to the main app function
+                    // Pass 'appId' to runApp
                     runApp(auth, db, currentUserId, appId);
                 } else {
                     console.error("Could not get User ID or DB. App cannot start.");
