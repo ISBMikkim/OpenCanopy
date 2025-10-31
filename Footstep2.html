@@ -450,7 +450,7 @@
         }
 
         // --- 8. 새 게시물 추가 --- (MODIFIED - Form 방식으로 변경)
-        async function handleAddNewPost(e) {
+        async function submitNewPost(e) {
             e.preventDefault(); // 폼 기본 제출 방지
             
             const file = newFileInput.files[0];
@@ -470,7 +470,8 @@
             try {
                 // 1. 파일 업로드
                 const fileId = `${Date.now()}-${file.name}`;
-                const imagePath = `artifacts/${appId}/public/images/${fileId}`;
+                // (FIX) 'data' 세그먼트를 스토리지 경로에 추가하여 권한 오류 수정
+                const imagePath = `artifacts/${appId}/public/data/images/${fileId}`;
                 const imageUrl = await uploadFile(file, imagePath);
 
                 // 2. Firestore에 새 문서 추가 (설명 포함)
@@ -665,7 +666,7 @@
         // --- 이벤트 리스너 연결 ---
         
         // (NEW) 새 게시물 폼 리스너
-        newPostForm.addEventListener('submit', handleAddNewPost);
+        newPostForm.addEventListener('submit', submitNewPost); // 'handleAddNewPost' -> 'submitNewPost'로 수정
         newRecordBtn.addEventListener('click', (e) => handleSpeechRecognition(e, newPostForm));
 
         // (REMOVED) Modal 관련 리스너
@@ -1035,6 +1036,8 @@
 
 </body>
 </html>
+
+
 
 
 
