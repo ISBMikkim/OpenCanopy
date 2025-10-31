@@ -26,6 +26,21 @@
         #custom-modal.visible #custom-modal-content {
             transform: scale(1);
         }
+        /* Animation for recording button */
+        .is-recording {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(29, 78, 216, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(29, 78, 216, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(29, 78, 216, 0);
+            }
+        }
     </style>
 </head>
 <body class="bg-blue-50 flex items-center justify-center min-h-screen p-4">
@@ -47,7 +62,8 @@
         <!-- Header -->
         <h1 id="main-title" class="flex items-center text-3xl font-bold text-gray-800">
             <span class="text-4xl mr-3">🚀</span>
-            Your First Mission!
+            <!-- Wrapped the text in a span for easier and more reliable translation -->
+            <span id="main-title-text">Your First Mission!</span>
         </h1>
         
         <!-- Mission title -->
@@ -84,7 +100,7 @@
                 aria-label="Read text aloud">
                 <!-- Speaker SVG icon -->
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.S53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
                 </svg>
             </button>
         </div>
@@ -107,6 +123,7 @@
 
     <script>
         // --- Translation Data ---
+        // Added new strings for speech functionality
         const translations = {
             en: {
                 mainTitle: "Your First Mission!",
@@ -115,9 +132,13 @@
                 placeholder: "My name is... and I love to play...",
                 modalTitle: "Notification",
                 micMessage: "Starting voice recording... (simulation)",
-                speakerMessageEmpty: "There is no text to read. Please fill in the text box first.",
                 speakerMessageReading: "Reading text:",
-                modalClose: "OK"
+                modalClose: "OK",
+                speechListening: "Listening... Speak now.",
+                speechError: "Speech recognition error. Please try again.",
+                speechNoMic: "Microphone access denied. Please allow microphone access in your browser settings.",
+                speechNotSupported: "Speech recognition is not supported in your browser. Try using Chrome or Safari.",
+                ttsNotSupported: "Text-to-Speech is not supported in your browser."
             },
             ko: {
                 mainTitle: "첫 번째 미션!",
@@ -126,20 +147,28 @@
                 placeholder: "제 이름은... 이고, ...하는 것을 좋아합니다...",
                 modalTitle: "알림",
                 micMessage: "음성 녹음을 시작합니다... (시뮬레이션)",
-                speakerMessageEmpty: "읽을 텍스트가 없습니다. 먼저 텍스트 상자를 채워주세요.",
                 speakerMessageReading: "텍스트 읽는 중:",
-                modalClose: "확인"
+                modalClose: "확인",
+                speechListening: "듣고 있습니다... 지금 말씀하세요.",
+                speechError: "음성 인식 오류. 다시 시도해 주세요.",
+                speechNoMic: "마이크 접근이 거부되었습니다. 브라우저 설정에서 마이크 접근을 허용해 주세요.",
+                speechNotSupported: "음성 인식이 브라우저에서 지원되지 않습니다. Chrome이나 Safari를 이용해 보세요.",
+                ttsNotSupported: "텍스트 음성 변환(TTS)이 브라우저에서 지원되지 않습니다."
             },
             ja: {
                 mainTitle: "最初のミッション！",
-                missionTitle: "1. ウォー킹パートナーに自己紹介をしましょう！",
+                missionTitle: "1. ウォーキングパートナーに自己紹介をしましょう！",
                 missionDesc: "下のボックスにあなたのことを少し書いてください。 趣味は何ですか？",
                 placeholder: "私の名前は...で、...するのが好きです...",
                 modalTitle: "通知",
-                micMessage: "音声録音を開始します... (シミュレーション)",
-                speakerMessageEmpty: "読み上げるテキストがありません。まずテキストボックスに入力してください。",
+                micMessage: "音声録音を開始します... (シ뮬레이션)",
                 speakerMessageReading: "テキストを読み上げています:",
-                modalClose: "OK"
+                modalClose: "OK",
+                speechListening: "聞いています... どうぞお話しください。",
+                speechError: "音声認識エラー。もう一度お試しください。",
+                speechNoMic: "マイクへのアクセスが拒否されました。ブラウザの設定でマイクへのアクセスを許可してください。",
+                speechNotSupported: "ご使用のブラウザは音声認識に対応していません。ChromeまたはSafariをお試しください。",
+                ttsNotSupported: "テキスト読み上げは、ご使用のブラウザでサポートされていません。"
             },
             fr: {
                 mainTitle: "Votre Première Mission !",
@@ -148,10 +177,22 @@
                 placeholder: "Je m'appelle... et j'aime jouer...",
                 modalTitle: "Notification",
                 micMessage: "Démarrage de l'enregistrement vocal... (simulation)",
-                speakerMessageEmpty: "Il n'y a pas de texte à lire. Veuillez d'abord remplir la zone de texte.",
                 speakerMessageReading: "Lecture du texte :",
-                modalClose: "OK"
+                modalClose: "OK",
+                speechListening: "Je vous écoute... Parlez maintenant.",
+                speechError: "Erreur de reconnaissance vocale. Veuillez réessayer.",
+                speechNoMic: "Accès au microphone refusé. Veuillez autoriser l'accès au microphone dans les paramètres de votre navigateur.",
+                speechNotSupported: "La reconnaissance vocale n'est pas prise en charge par votre navigateur. Essayez d'utiliser Chrome ou Safari.",
+                ttsNotSupported: "La synthèse vocale n'est pas prise en charge par votre navigateur."
             }
+        };
+
+        // Map simple language codes to more specific BCP 47 codes for Speech API
+        const langMap = {
+            en: 'en-US',
+            ko: 'ko-KR',
+            ja: 'ja-JP',
+            fr: 'fr-FR'
         };
 
         // --- Select DOM elements ---
@@ -166,10 +207,50 @@
         
         // Language elements
         const languageSwitcher = document.getElementById('language-switcher');
-        const mainTitle = document.getElementById('main-title');
+        const mainTitleText = document.getElementById('main-title-text'); 
         const missionTitle = document.getElementById('mission-title');
         const missionDesc = document.getElementById('mission-desc');
         const modalTitle = document.getElementById('modal-title');
+
+        // --- Speech Recognition (STT) Setup ---
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition;
+        let isRecording = false;
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = false; // Stop after first utterance
+            recognition.interimResults = false; // Get final results only
+
+            recognition.onstart = () => {
+                isRecording = true;
+                micButton.classList.add('is-recording');
+                const lang = languageSwitcher.value;
+                showModal(translations[lang].speechListening);
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                missionText.value += transcript + ' '; // Append text
+            };
+
+            recognition.onerror = (event) => {
+                const lang = languageSwitcher.value;
+                if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                    showModal(translations[lang].speechNoMic);
+                } else {
+                    showModal(translations[lang].speechError);
+                    console.error('Speech Recognition Error:', event.error);
+                }
+            };
+
+            recognition.onend = () => {
+                isRecording = false;
+                micButton.classList.remove('is-recording');
+                // Don't close modal immediately, user might be reading it
+                // modalCloseButton.click(); 
+            };
+        }
 
         // --- Functions ---
 
@@ -177,15 +258,17 @@
         function updateLanguage(lang) {
             const t = translations[lang];
             
-            // Using textContent for <h1> which contains an icon span
-            // We select the last child node (the text node) and update its value
-            mainTitle.childNodes[mainTitle.childNodes.length - 1].nodeValue = ` ${t.mainTitle}`;
-            
+            mainTitleText.textContent = t.mainTitle;
             missionTitle.textContent = t.missionTitle;
             missionDesc.textContent = t.missionDesc;
             missionText.placeholder = t.placeholder;
             modalTitle.textContent = t.modalTitle;
             modalCloseButton.textContent = t.modalClose;
+
+            // Update speech recognition language
+            if (recognition) {
+                recognition.lang = langMap[lang] || 'en-US';
+            }
         }
 
         // Function to show custom modal (alert)
@@ -199,33 +282,61 @@
             customModal.classList.remove('visible');
         });
 
+        // --- Event Listeners ---
+
         // Mic button click event
         micButton.addEventListener('click', () => {
-            const lang = languageSwitcher.value;
-            const message = translations[lang].micMessage;
-            console.log(message);
-            showModal(message); // Use custom modal instead of alert()
+            if (!SpeechRecognition) {
+                const lang = languageSwitcher.value;
+                showModal(translations[lang].speechNotSupported);
+                micButton.disabled = true;
+                return;
+            }
+
+            if (isRecording) {
+                recognition.stop();
+            } else {
+                try {
+                    recognition.lang = langMap[languageSwitcher.value] || 'en-US';
+                    recognition.start();
+                } catch (e) {
+                    // Handle errors if recognition is already started
+                    console.error("Error starting recognition: ", e.message);
+                    if(isRecording) recognition.stop(); // Try to stop it
+                }
+            }
         });
 
         // Speaker button click event
         speakerButton.addEventListener('click', () => {
+            if (!('speechSynthesis' in window)) {
+                const lang = languageSwitcher.value;
+                showModal(translations[lang].ttsNotSupported);
+                speakerButton.disabled = true;
+                return;
+            }
+
             const lang = languageSwitcher.value;
             const t = translations[lang];
-            const textToRead = missionText.value.trim();
             
-            let message;
-            if (textToRead) {
-                message = `${t.speakerMessageReading} "${textToRead}"... (simulation)`;
-            } else {
-                message = t.speakerMessageEmpty;
-            }
-            console.log(message);
-            showModal(message); // Use custom modal instead of alert()
+            // Always read the mission prompt
+            const promptText = `${t.mainTitle} ${t.missionTitle} ${t.missionDesc}`;
+            
+            // Stop any previous speech
+            window.speechSynthesis.cancel();
+            
+            const utterance = new SpeechSynthesisUtterance(promptText);
+            utterance.lang = langMap[lang] || 'en-US';
+            
+            window.speechSynthesis.speak(utterance);
         });
 
         // Language switcher event
         languageSwitcher.addEventListener('change', (e) => {
             updateLanguage(e.target.value);
+            // Stop any ongoing speech or recognition when language changes
+            if (isRecording) recognition.stop();
+            window.speechSynthesis.cancel();
         });
 
         // Initial load
