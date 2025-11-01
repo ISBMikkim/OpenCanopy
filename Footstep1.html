@@ -258,7 +258,7 @@
             },
             ja: {
                 mainTitle: "最初のミッション！",
-                missionTitle: "1. ウォー킹パートナーに自己紹介をしましょう！",
+                missionTitle: "1. ウォーキングパートナーに自己紹介をしましょう！",
                 missionDesc: "下のボックスにあなたのことを少し書いてください。 趣味は何ですか？",
                 placeholder: "私の名前は...で、...するのが好きです...",
                 modalTitle: "通知",
@@ -375,10 +375,21 @@
                 // Don't close modal immediately
             };
         }
+        
+        // --- *** FIX for double-save bug *** ---
+        // Flag to ensure the app logic runs only once
+        let isAppInitialized = false;
 
         // --- Main App Function (Definition) ---
         // This function contains all the logic that depends on Firebase (db, auth, userId)
         function runApp(auth, db, userId, appId) { // Added appId
+            // *** Check if app is already initialized ***
+            if (isAppInitialized) {
+                console.warn("App is already initialized. Skipping runApp().");
+                return;
+            }
+            isAppInitialized = true; // Set the flag
+            
             console.log("App is running for user:", userId, "on app:", appId);
 
             // Enable the save button now that auth is ready
@@ -753,6 +764,7 @@
                 }
 
                 if (currentUserId && db) {
+                    // *** Pass all parameters to runApp ***
                     runApp(auth, db, currentUserId, effectiveAppId);
                 } else {
                     console.error("Could not get User ID or DB. App cannot start.");
