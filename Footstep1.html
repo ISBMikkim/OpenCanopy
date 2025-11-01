@@ -203,7 +203,6 @@
         // --- Firebase Imports ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        // *** ADDED 'doc' and 'deleteDoc' ***
         import { getFirestore, collection, addDoc, query, onSnapshot, setLogLevel, serverTimestamp, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Translation Data ---
@@ -307,11 +306,12 @@
         };
 
         // Map simple language codes to more specific BCP 47 codes for Speech API
+        // *** UPDATED 'fr' to 'fr-CA' to match desired voice ***
         const langMap = {
             en: 'en-US',
             ko: 'ko-KR',
             ja: 'ja-JP',
-            fr: 'fr-FR'
+            fr: 'fr-CA'
         };
 
         // --- Select DOM elements ---
@@ -375,6 +375,20 @@
                 // Don't close modal immediately
             };
         }
+
+        // --- *** NEW: TTS Voice Loading *** ---
+        let availableVoices = [];
+        
+        function loadVoices() {
+            availableVoices = window.speechSynthesis.getVoices();
+            console.log("Available voices:", availableVoices);
+        }
+        
+        loadVoices(); // Initial load
+        if (window.speechSynthesis.onvoiceschanged !== undefined) {
+            window.speechSynthesis.onvoiceschanged = loadVoices;
+        }
+        // --- End of TTS Voice Loading ---
         
         // --- *** FIX for double-save bug *** ---
         // Flag to ensure the app logic runs only once
@@ -472,8 +486,30 @@
                 const t = translations[lang];
                 const promptText = `${t.mainTitle} ${t.missionTitle} ${t.missionDesc}`;
                 window.speechSynthesis.cancel();
+                
                 const utterance = new SpeechSynthesisUtterance(promptText);
-                utterance.lang = langMap[lang] || 'en-US';
+                
+                // --- *** UPDATED: Voice Selection Logic *** ---
+                utterance.lang = langMap[lang] || 'en-US'; // Set lang as a fallback
+                
+                let voiceToUse = null;
+                if (lang === 'ko') {
+                    // *** MODIFIED: Check for both 'Yuna' and '유나' ***
+                    voiceToUse = availableVoices.find(v => (v.name === 'Yuna' || v.name === '유나') && v.lang.startsWith('ko'));
+                } else if (lang === 'ja') {
+                    voiceToUse = availableVoices.find(v => v.name === 'Kyoko' && v.lang.startsWith('ja'));
+                } else if (lang === 'fr') {
+                    voiceToUse = availableVoices.find(v => v.name === 'Amélie' && v.lang === 'fr-CA');
+                }
+                
+                if (voiceToUse) {
+                    utterance.voice = voiceToUse;
+                    console.log("Using preferred voice:", voiceToUse.name);
+                } else {
+                    console.warn(`Preferred voice for ${lang} not found. Using default for lang ${utterance.lang}.`);
+                }
+                // --- *** END: Voice Selection Logic *** ---
+
                 window.speechSynthesis.speak(utterance);
             });
 
@@ -552,7 +588,7 @@
                         deleteButton.dataset.id = note.id;
                         deleteButton.textContent = t.deleteButton; // Use translation
                         deleteAction.appendChild(deleteButton);
-                        li.appendChild(deleteAction);
+li.appendChild(deleteAction);
 
                         // Create content wrapper
                         const content = document.createElement('div');
