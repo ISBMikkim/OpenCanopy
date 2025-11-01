@@ -257,7 +257,7 @@
             },
             ja: {
                 mainTitle: "最初のミッション！",
-                missionTitle: "1. ウォーキングパートナーに自己紹介をしましょう！",
+                missionTitle: "1. ウォー킹パートナーに自己紹介をしましょう！",
                 missionDesc: "下のボックスにあなたのことを少し書いてください。 趣味は何ですか？",
                 placeholder: "私の名前は...で、...するのが好きです...",
                 modalTitle: "通知",
@@ -494,8 +494,7 @@
                 
                 let voiceToUse = null;
                 if (lang === 'ko') {
-                    // *** MODIFIED: Check for both 'Yuna' and '유나' ***
-                    voiceToUse = availableVoices.find(v => (v.name === 'Yuna' || v.name === '유나') && v.lang.startsWith('ko'));
+                    voiceToUse = availableVoices.find(v => v.name === 'Yuna' && v.lang.startsWith('ko'));
                 } else if (lang === 'ja') {
                     voiceToUse = availableVoices.find(v => v.name === 'Kyoko' && v.lang.startsWith('ja'));
                 } else if (lang === 'fr') {
