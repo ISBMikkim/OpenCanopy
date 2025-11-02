@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1st Grade Talking Toolkit</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Nunito font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Nunito', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'DEFAULT': '0 4px 12px 0 rgba(0, 0, 0, 0.07)',
+                        'lg': '0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* iPad iframe 스크롤 우회 */
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;                 /* iframe 높이만큼 고정 */
+            overflow: hidden;              /* 바깥쪽 스크롤 막기 */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* 실제로 스크롤할 영역 */
+        .ios-scroll-wrapper {
+            position: relative;
+            height: 100%;
+            width: 100%;
+            overflow-y: auto;              /* 세로 스크롤 허용 */
+            -webkit-overflow-scrolling: touch; /* iOS 관성 스크롤 */
+        }
+    </style>
+</head>
+
+<body class="font-sans bg-sky-50 text-gray-800">
+<div class="ios-scroll-wrapper">
+
+    <!-- 메인 컨테이너 -->
+    <div class="container mx-auto max-w-4xl p-6 sm:p-10">
+
+        <!-- 언어 선택 드롭다운 -->
+        <div class="w-full flex justify-end mb-4">
+            <label for="language-select" class="sr-only">Select Language</label>
+            <select id="language-select" class="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <option value="en">English</option>
+                <option value="ko">한국어 (Korean)</option>
+                <option value="ja">日本語 (Japanese)</option>
+                <option value="fr">Français (French)</option>
+            </select>
+        </div>
+
+        <!-- 헤더 섹션 -->
+        <header class="text-center mb-12">
+            <h1 class="text-4xl sm:text-5xl font-black text-blue-600 mb-4" data-translate-key="header.title">
+                Talk Together!
+            </h1>
+            <p class="text-lg sm:text-xl text-gray-700 max-w-2xl mx-auto" data-translate-key="header.subtitle">
+                Welcome to our <strong class="font-bold text-blue-600">Talking Toolkit</strong>! This toolbox helps us be great listeners, share our big ideas, and ask kind questions.
+            </p>
+        </header>
+
+        <!-- 5가지 핵심 도구 섹션 -->
+        <section>
+            <h2 class="text-3xl sm:text-4xl font-bold text-teal-600 text-center mb-8" data-translate-key="tools.title">
+                Our 5 Super Talking Tools!
+            </h2>
+
+            <!-- 도구 카드 그리드 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <!-- 도구 1: Notice -->
+                <div data-content-id="tool1" class="bg-white rounded-2xl shadow-lg p-6 sm:p-8 flex items-start space-x-5 transition-transform hover:scale-[1.02] relative">
+                    <span class="text-5xl sm:text-6xl mt-1">👀</span>
+                    <div>
+                        <h3 class="text-2xl font-bold text-blue-700 mb-2" data-translate-key="tool1.title">Notice (Say What You See)</h3>
+                        <p class="text-lg text-gray-700 mb-3" data-translate-key="tool1.desc"><strong class="font-bold text-gray-900">What to say:</strong> Share the very <em>first</em> thing you see in a friend's picture, story, or project.</p>
+                        <p class="text-lg text-gray-900 bg-blue-50 rounded-lg p-4 font-medium" data-translate-key="tool1.ex"><strong class="font-bold">Example:</strong> "I noticed the bright red bird in your drawing!"</p>
+                    </div>
+                    <!-- 스피커 버튼 -->
+                    <button onclick="speakText(this)" title="Read aloud" class="absolute bottom-6 right-6 w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-300 transition">
+                        <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.683 3.92 11 4.146 11 4.586v14.828c0 .44-.317.666-.707.354L5.586 15z"></path></svg>
+                    </button>
+                </div>
+
+                <!-- 도구 2: Appreciate -->
+                <div data-content-id="tool2" class="bg-white rounded-2xl shadow-lg p-6 sm:p-8 flex items-start space-x-5 transition-transform hover:scale-[1.02] relative">
+                    <span class="text-5xl sm:text-6xl mt-1">👍</span>
+                    <div>
+                        <h3 class="text-2xl font-bold text-pink-600 mb-2" data-translate-key="tool2.title">Appreciate (Say Something Nice)</h3>
+                        <p class="text-lg text-gray-700 mb-3" data-translate-key="tool2.desc"><strong class="font-bold text-gray-900">What to say:</strong> Share what you liked best or thought was super cool about your friend's idea.</p>
+                        <p class="text-lg text-gray-900 bg-pink-50 rounded-lg p-4 font-medium" data-translate-key="tool2.ex"><strong class="font-bold">Example:</strong> "Wow, I love the way you built the tall tower with the blocks!"</p>
+                    </div>
+                    <button onclick="speakText(this)" title="Read aloud" class="absolute bottom-6 right-6 w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-300 transition">
+                        <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.683 3.92 11 4.146 11 4.586v14.828c0 .44-.317.666-.707.354L5.586 15z"></path></svg>
+                    </button>
+                </div>
+                
+                <!-- 도구 3: Connect -->
+                <div data-content-id="tool3" class="bg-white rounded-2xl shadow-lg p-6 sm:p-8 flex items-start space-x-5 transition-transform hover:scale-[1.02] relative">
+                    <span class="text-5xl sm:text-6xl mt-1">🤝</span>
+                    <div>
+                        <h3 class="text-2xl font-bold text-green-600 mb-2" data-translate-key="tool3.title">Connect (Find What's the Same)</h3>
+                        <p class="text-lg text-gray-700 mb-3" data-translate-key="tool3.desc"><strong class="font-bold text-gray-900">What to say:</strong> Share how your friend's story is like something in <em>your</em> life.</p>
+                        <p class="text-lg text-gray-900 bg-green-50 rounded-lg p-4 font-medium" data-translate-key="tool3.ex"><strong class="font-bold">Example:</strong> "You have a little sister? I have a little sister, too! That's a fun connection."</p>
+                    </div>
+                    <button onclick="speakText(this)" title="Read aloud" class="absolute bottom-6 right-6 w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-300 transition">
+                        <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.683 3.92 11 4.146 11 4.586v14.828c0 .44-.317.666-.707.354L5.586 15z"></path></svg>
+                    </button>
+                </div>
+
+                <!-- 도구 4: Probe -->
+                <div data-content-id="tool4" class="bg-white rounded-2xl shadow-lg p-6 sm:p-8 flex items-start space-x-5 transition-transform hover:scale-[1.02] relative">
+                    <span class="text-5xl sm:text-6xl mt-1">❓</span>
+                    <div>
+                        <h3 class="text-2xl font-bold text-purple-600 mb-2" data-translate-key="tool4.title">Probe (Ask to Learn More)</h3>
+                        <p class="text-lg text-gray-700 mb-3" data-translate-key="tool4.desc"><strong class="font-bold text-gray-900">What to say:</strong> Ask a kind question because you are curious and want to know more. You can start with:</p>
+                        <ul class="list-disc list-inside text-lg text-purple-900 bg-purple-50 rounded-lg p-4 space-y-1 font-medium" data-translate-key="tool4.list">
+                            <li>"Tell me more about..."</li>
+                            <li>"I wonder why..."</li>
+                            <li>"Help me understand..."</li>
+                        </ul>
+                    </div>
+                    <button onclick="speakText(this)" title="Read aloud" class="absolute bottom-6 right-6 w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-300 transition">
+                        <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.683 3.92 11 4.146 11 4.586v14.828c0 .44-.317.666-.707.354L5.586 15z"></path></svg>
+                    </button>
+                </div>
+
+                <!-- 도구 5: Extend -->
+                <div data-content-id="tool5" class="bg-white rounded-2xl shadow-lg p-6 sm:p-8 flex items-start space-x-5 transition-transform hover:scale-[1.02] relative">
+                    <span class="text-5xl sm:text-6xl mt-1">💡</span>
+                    <div>
+                        <h3 class="text-2xl font-bold text-orange-600 mb-2" data-translate-key="tool5.title">Extend (Share a New Idea)</h3>
+                        <p class="text-lg text-gray-700 mb-3" data-translate-key="tool5.desc"><strong class="font-bold text-gray-900">What to say:</strong> Share a new thought that <em>popped</em> into your head after listening to your friend.</p>
+                        <p class="text-lg text-gray-900 bg-orange-50 rounded-lg p-4 font-medium" data-translate-key="tool5.ex"><strong class="font-bold">Example:</strong> "Listening to your story made me think about my own neighborhood in a new way!"</p>
+                    </div>
+                    <button onclick="speakText(this)" title="Read aloud" class="absolute bottom-6 right-6 w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-300 transition">
+                        <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.683 3.92 11 4.146 11 4.586v14.828c0 .44-.317.666-.707.354L5.586 15z"></path></svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 안전 규칙 섹션 -->
+        <section class="mt-16">
+            <h2 class="text-3xl sm:text-4xl font-bold text-red-600 text-center mb-8" data-translate-key="rules.title">
+                Our Super Safe Talking Rules
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <!-- 규칙 1 -->
+                <div data-content-id="rule1" class="bg-yellow-50 border-2 border-yellow-300 rounded-2xl p-6 sm:p-8 flex items-start space-x-5 relative">
+                    <span class="text-5xl sm:text-6xl mt-1">🎤</span>
+                    <div>
+                        <h3 class="text-2xl font-bold text-yellow-800 mb-2" data-translate-key="rule1.title">Talk with Your Voice!</h3>
+                        <p class="text-lg text-yellow-900" data-translate-key="rule1.desc">Typing is hard sometimes! It is **always okay** to use the voice recorder (the microphone button) to share your thoughts.</p>
+                    </div>
+                    <button onclick="speakText(this)" title="Read aloud" class="absolute bottom-6 right-6 w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-300 transition">
+                        <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.683 3.92 11 4.146 11 4.586v14.828c0 .44-.317.666-.707.354L5.586 15z"></path></svg>
+                    </button>
+                </div>
+                
+                <!-- 규칙 2 -->
+                <div data-content-id="rule2" class="bg-yellow-50 border-2 border-yellow-300 rounded-2xl p-6 sm:p-8 flex items-start space-x-5 relative">
+                    <span class="text-5xl sm:text-6xl mt-1">❤️</span>
+                    <div>
+                        <h3 class="text-2xl font-bold text-yellow-800 mb-2" data-translate-key="rule2.title">Be Kind and Respectful</h3>
+                        <p class="text-lg text-yellow-900" data-translate-key="rule2.desc">We are always talking to one of our real friends. We **never** make fun of a friend's family, home, or feelings. We are a team!</p>
+                    </div>
+                    <button onclick="speakText(this)" title="Read aloud" class="absolute bottom-6 right-6 w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-300 transition">
+                        <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.683 3.92 11 4.146 11 4.586v14.828c0 .44-.317.666-.707.354L5.586 15z"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- kind keys -->
+        <section class="mt-16 text-center">
+            <div data-content-id="keys" class="bg-gradient-to-br from-yellow-300 to-orange-400 text-white rounded-2xl shadow-xl p-8 sm:p-12 relative">
+                <span class="text-7xl block mb-4">🔑</span>
+                <h2 class="text-3xl sm:text-4xl font-bold mb-4" data-translate-key="keys.title">
+                    A Way to Remember: The Kind Keys
+                </h2>
+                <p class="text-lg sm:text-xl font-medium max-w-xl mx-auto" data-translate-key="keys.p">
+                    Think of this toolkit as a set of <strong>"Kind Keys"</strong> to gently unlock a friend's story. We use our tools to give a polite *knock-knock* and ask kindly, "Can I learn more?"
+                </p>
+                <button onclick="speakText(this)" title="Read aloud" class="absolute bottom-6 right-6 w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-300 transition">
+                    <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.683 3.92 11 4.146 11 4.586v14.828c0 .44-.317.666-.707.354L5.586 15z"></path></svg>
+                </button>
+            </div>
+        </section>
+
+    </div> <!--/ container -->
+
+</div> <!--/ ios-scroll-wrapper -->
+    
+<!-- 번역 및 음성 스크립트 -->
+<script>
+    // 번역 데이터
+    const translations = {
+        'en': {
+            header: {
+                title: "Talk Together!",
+                subtitle: "Welcome to our <strong class='font-bold text-blue-600'>Talking Toolkit</strong>! This toolbox helps us be great listeners, share our big ideas, and ask kind questions."
+            },
+            tools: {
+                title: "Our 5 Super Talking Tools!"
+            },
+            tool1: {
+                title: "Notice (Say What You See)",
+                desc: "<strong class='font-bold text-gray-900'>What to say:</strong> Share the very <em>first</em> thing you see in a friend's picture, story, or project.",
+                ex: "<strong class='font-bold'>Example:</strong> \"I noticed the bright red bird in your drawing!\""
+            },
+            tool2: {
+                title: "Appreciate (Say Something Nice)",
+                desc: "<strong class='font-bold text-gray-900'>What to say:</strong> Share what you liked best or thought was super cool about your friend's idea.",
+                ex: "<strong class='font-bold'>Example:</strong> \"Wow, I love the way you built the tall tower with the blocks!\""
+            },
+            tool3: {
+                title: "Connect (Find What's the Same)",
+                desc: "<strong class='font-bold text-gray-900'>What to say:</strong> Share how your friend's story is like something in <em>your</em> life.",
+                ex: "<strong class='font-bold'>Example:</strong> \"You have a little sister? I have a little sister, too! That's a fun connection.\""
+            },
+            tool4: {
+                title: "Probe (Ask to Learn More)",
+                desc: "<strong class='font-bold text-gray-900'>What to say:</strong> Ask a kind question because you are curious and want to know more. You can start with:",
+                list: "<li>\"Tell me more about...\"</li><li>\"I wonder why...\"</li><li>\"Help me understand...\"</li>"
+            },
+            tool5: {
+                title: "Extend (Share a New Idea)",
+                desc: "<strong class='font-bold text-gray-900'>What to say:</strong> Share a new thought that <em>popped</em> into your head after listening to your friend.",
+                ex: "<strong class='font-bold'>Example:</strong> \"Listening to your story made me think about my own neighborhood in a new way!\""
+            },
+            rules: {
+                title: "Our Super Safe Talking Rules"
+            },
+            rule1: {
+                title: "Talk with Your Voice!",
+                desc: "Typing is hard sometimes! It is **always okay** to use the voice recorder (the microphone button) to share your thoughts."
+            },
+            rule2: {
+                title: "Be Kind and Respectful",
+                desc: "We are always talking to one of our real friends. We **never** make fun of a friend's family, home, or feelings. We are a team!"
+            },
+            keys: {
+                title: "A Way to Remember: The Kind Keys",
+                p: "Think of this toolkit as a set of <strong>\"Kind Keys\"</strong> to gently unlock a friend's story. We use our tools to give a polite *knock-knock* and ask kindly, \"Can I learn more?\""
+            }
+        },
+        'ko': {
+            header: {
+                title: "다 함께 이야기해요!",
+                subtitle: "<strong class='font-bold text-blue-600'>이야기 도구 상자</strong>에 온 것을 환영해요! 이 도구 상자는 우리가 훌륭한 경청자가 되고, 멋진 생각을 나누며, 친절한 질문을 하도록 도와줄 거예요."
+            },
+            tools: {
+                title: "우리의 5가지 슈퍼 이야기 도구!"
+            },
+            tool1: {
+                title: "Notice (본 것 말하기)",
+                desc: "<strong class='font-bold text-gray-900'>이렇게 말해요:</strong> 친구의 그림이나 이야기에서 <em>가장 먼저</em> 눈에 띈 것을 말해보세요.",
+                ex: "<strong class='font-bold'>예시:</strong> \"네가 그린 그림에서 밝은 빨간 새가 가장 먼저 보였어!\""
+            },
+            tool2: {
+                title: "Appreciate (칭찬하기)",
+                desc: "<strong class='font-bold text-gray-900'>이렇게 말해요:</strong> 친구의 아이디어에서 가장 좋았거나 정말 멋지다고 생각하는 점을 말해주세요.",
+                ex: "<strong class='font-bold'>예시:</strong> \"와, 블록으로 그렇게 높은 탑을 만들다니 정말 멋지다!\""
+            },
+            tool3: {
+                title: "Connect (연결하기)",
+                desc: "<strong class='font-bold text-gray-900'>이렇게 말해요:</strong> 친구의 이야기가 <em>나의</em> 삶과 어떻게 비슷한지 이야기해 보세요.",
+                ex: "<strong class='font-bold'>예시:</strong> \"너도 여동생이 있구나! 나도 여동생이 있는데! 정말 반가운 연결이야.\""
+            },
+            tool4: {
+                title: "Probe (질문하기)",
+                desc: "<strong class='font-bold text-gray-900'>이렇게 말해요:</strong> 궁금한 점이 있어서 더 알고 싶을 때 친절하게 질문해 보세요. 이렇게 시작할 수 있어요:",
+                list: "<li>\"...에 대해 좀 더 말해줄래?\"</li><li>\"왜 ...인지 궁금해\"</li><li>\"...을 이해하는 걸 도와줄래?\"</li>"
+            },
+            tool5: {
+                title: "Extend (새로운 생각 더하기)",
+                desc: "<strong class='font-bold text-gray-900'>이렇게 말해요:</strong> 친구의 이야기를 듣고 <em>머릿속에 떠오른</em> 새로운 생각을 나눠보세요.",
+                ex: "<strong class='font-bold'>예시:</strong> \"네 이야기를 들으니 우리 동네를 새로운 눈으로 보게 되었어!\""
+            },
+            rules: {
+                title: "우리의 슈퍼 안전 이야기 규칙"
+            },
+            rule1: {
+                title: "목소리로 이야기해요!",
+                desc: "타이핑은 가끔 어려워요! 마이크 버튼(녹음기)을 사용해서 여러분의 생각을 목소리로 남겨도 **항상 괜찮아요**."
+            },
+            rule2: {
+                title: "친절하고 존중해요",
+                desc: "우리는 항상 실제 친구와 이야기하고 있어요. 친구의 가족, 집, 또는 기분을 **절대** 놀리지 않아요. 우리는 한 팀이에요!"
+            },
+            keys: {
+                title: "기억하는 방법: 친절한 열쇠",
+                p: "이 도구 상자를 친구의 마음을 여는 <strong>\"친절한 열쇠\"</strong>라고 생각하세요. 우리는 도구를 사용해 예의 바르게 *똑똑* 노크하고, \"내가 더 알아도 될까?\"라고 친절하게 물어봐요."
+            }
+        },
+        'ja': {
+            header: {
+                title: "みんなで話そう！",
+                subtitle: "<strong class='font-bold text-blue-600'>お話ツールキット</strong>へようこそ！このツールボックスは、私たちが聞き上手になり、素晴らしいアイデアを分かち合い、親切な質問をするのを助けます。"
+            },
+            tools: {
+                title: "5つのスーパーお話ツール！"
+            },
+            tool1: {
+                title: "Notice (見たことを言う)",
+                desc: "<strong class='font-bold text-gray-900'>何を言うか:</strong> 友達の写真や話で<em>一番最初</em>に目についたことを話してみましょう。",
+                ex: "<strong class='font-bold'>例:</strong> 「あなたの絵にある真っ赤な鳥が目に入ったよ！」"
+            },
+            tool2: {
+                title: "Appreciate (素敵なところを言う)",
+                desc: "<strong class='font-bold text-gray-900'>何を言うか:</strong> 友達のアイデアで一番好きだったところ、すごいと思ったところを伝えましょう。",
+                ex: "<strong class='font-bold'>例:</strong> 「わあ、ブロックで高いタワーを作ったのがすごいね！」"
+            },
+            tool3: {
+                title: "Connect (似ているところを見つける)",
+                desc: "<strong class='font-bold text-gray-900'>何を言うか:</strong> 友達の話が<em>自分の</em>生活とどう似ているか話してみましょう。",
+                ex: "<strong class='font-bold'>例:</strong> 「あなたも妹さんがいるの？私にも妹がいるよ！嬉しいつながりだね。」"
+            },
+            tool4: {
+                title: "Probe (もっと聞く)",
+                desc: "<strong class='font-bold text-gray-900'>何を言うか:</strong> 好奇心からもっと知りたいと思った時、親切な質問をしてみましょう。こう始められます:",
+                list: "<li>「…についてもっと教えて？」</li><li>「…はなぜか気になるな」</li><li>「…を理解するのを手伝って？」</li>"
+            },
+            tool5: {
+                title: "Extend (新しいアイデアを共有する)",
+                desc: "<strong class='font-bold text-gray-900'>何を言うか:</strong> 友達の話を聞いて<em>思い浮かんだ</em>新しい考えを共有しましょう。",
+                ex: "<strong class='font-bold'>例:</strong> 「あなたの話を聞いて、自分の町を新しい目で見ることができたよ！」"
+            },
+            rules: {
+                title: "私たちのスーパー安全お話ルール"
+            },
+            rule1: {
+                title: "声で話そう！",
+                desc: "タイピングは時々難しいです！マイクボタン（録音機）を使って、自分の考えを声で残しても**全く問題ありません**。"
+            },
+            rule2: {
+                title: "親切に、尊敬の気持ちを込めて",
+                desc: "私たちはいつも本当の友達と話しています。友達の家族、家、気持ちを**絶対に**からかってはいけません。私たちはチームです！"
+            },
+            keys: {
+                title: "覚える方法: 親切なカギ",
+                p: "このツールキットを、友達の心を開く<strong>「親切なカギ」</strong>だと思ってください。私たちは道具を使って丁寧に*トントン*とノックし、「もっと知ってもいい？」と優しく尋ねます。"
+            }
+        },
+        'fr': {
+            header: {
+                title: "Parlons Ensemble !",
+                subtitle: "Bienvenue dans notre <strong class='font-bold text-blue-600'>Boîte à Outils de Discussion</strong> ! Cette boîte nous aide à être de bons auditeurs, à partager nos grandes idées et à poser des questions gentilles."
+            },
+            tools: {
+                title: "Nos 5 Super Outils de Discussion !"
+            },
+            tool1: {
+                title: "Notice (Dire ce que tu vois)",
+                desc: "<strong class='font-bold text-gray-900'>Quoi dire :</strong> Partage la <em>toute première</em> chose que tu vois dans le dessin, l'histoire ou le projet d'un ami.",
+                ex: "<strong class='font-bold'>Exemple :</strong> \"J'ai remarqué l'oiseau rouge vif dans ton dessin !\""
+            },
+            tool2: {
+                title: "Appreciate (Dire quelque chose de gentil)",
+                desc: "<strong class='font-bold text-gray-900'>Quoi dire :</strong> Partage ce que tu as préféré ou ce que tu as trouvé super cool dans l'idée de ton ami.",
+                ex: "<strong class='font-bold'>Exemple :</strong> \"Wow, j'adore comment tu as construit cette haute tour avec les blocs !\""
+            },
+            tool3: {
+                title: "Connect (Trouver ce qui est pareil)",
+                desc: "<strong class='font-bold text-gray-900'>Quoi dire :</strong> Raconte en quoi l'histoire de ton ami ressemble à quelque chose dans <em>ta</em> vie.",
+                ex: "<strong class='font-bold'>Exemple :</strong> \"Tu as une petite sœur ? J'ai une petite sœur aussi ! C'est une chouette connexion.\""
+            },
+            tool4: {
+                title: "Probe (Demander pour en savoir plus)",
+                desc: "<strong class='font-bold text-gray-900'>Quoi dire :</strong> Pose une question gentille parce que tu es curieux et que tu veux en savoir plus. Tu peux commencer par :",
+                list: "<li>\"Parle-moi en plus de...\"</li><li>\"Je me demande pourquoi...\"</li><li>\"Aide-moi à comprendre...\"</li>"
+            },
+            tool5: {
+                title: "Extend (Partager une nouvelle idée)",
+                desc: "<strong class='font-bold text-gray-900'>Quoi dire :</strong> Partage une nouvelle pensée qui t'est <em>venue à l'esprit</em> après avoir écouté ton ami.",
+                ex: "<strong class='font-bold'>Example :</strong> \"Écouter ton histoire m'a fait penser à mon propre quartier d'une nouvelle façon !\""
+            },
+            rules: {
+                title: "Nos Super Règles de Discussion Sécurisées"
+            },
+            rule1: {
+                title: "Parle avec ta voix !",
+                desc: "Taper au clavier est parfois difficile ! C'est **toujours correct** d'utiliser l'enregistreur vocal (le bouton micro) pour partager tes pensées."
+            },
+            rule2: {
+                title: "Sois gentil et respectueux",
+                desc: "Nous parlons toujours à l'un de nos vrais amis. On ne se moque **jamais** de la famille, de la maison ou des sentiments d'un ami. Nous sommes une équipe !"
+            },
+            keys: {
+                title: "Un moyen de s'en souvenir : Les Clés de la Gentillesse",
+                p: "Pense à cette boîte à outils comme à un jeu de <strong>\"Clés de la Gentillesse\"</strong> pour ouvrir doucement l'histoire d'un ami. Nous utilisons nos outils pour *toc-toc* poliment et demander gentiment : \"Puis-je en savoir plus ?\""
+            }
+        }
+    };
+
+    // 음성 합성 준비
+    const synth = window.speechSynthesis;
+    let voices = [];
+
+    function loadVoices() {
+        voices = synth.getVoices();
+    }
+
+    // 태그/이모지 제거
+    function stripHtml(html) {
+        let doc = new DOMParser().parseFromString(html, 'text/html');
+        let text = (doc.body.textContent || "").replace(/(\r\n|\n|\r)/gm, " ").trim();
+        const emojiRegex = /(\p{Emoji_Presentation}|\p{Emoji}\uFE0F|\p{Emoji_Modifier_Base}|\p{Emoji_Component}|\u200d)/gu;
+        return text.replace(emojiRegex, '');
+    }
+
+    function findVoice(langCode) {
+        if (voices.length === 0) {
+            voices = synth.getVoices();
+        }
+
+        let voice = null;
+        const baseLang = langCode.split('-')[0];
+
+        if (langCode === 'ko-KR')
+            voice = voices.find(v => v.lang === 'ko-KR' && (v.name === 'Yuna' || v.name === '유나'));
+        else if (langCode === 'ja-JP')
+            voice = voices.find(v => v.lang === 'ja-JP' && v.name === 'Kyoko');
+        else if (langCode === 'fr-CA')
+            voice = voices.find(v => v.lang === 'fr-CA' && v.name === 'Amélie');
+        else if (langCode === 'en-US')
+            voice = voices.find(v => v.lang === 'en-US' && v.name && v.name.includes('Google'));
+
+        if (!voice) voice = voices.find(v => v.lang === langCode);
+        if (!voice) voice = voices.find(v => v.lang.startsWith(baseLang));
+
+        return voice;
+    }
+
+    function speak(text, lang) {
+        if (synth.speaking) {
+            synth.cancel();
+        }
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = lang;
+
+        const voice = findVoice(lang);
+        if (voice) {
+            utterance.voice = voice;
+        }
+
+        synth.speak(utterance);
+    }
+
+    // 버튼에서 호출
+    window.speakText = function(buttonElement) {
+        const card = buttonElement.closest('[data-content-id]');
+        if (!card) return;
+
+        const contentId = card.dataset.contentId;
+        const currentLang = document.getElementById('language-select').value;
+        const langCode = {
+            'en': 'en-US',
+            'ko': 'ko-KR',
+            'ja': 'ja-JP',
+            'fr': 'fr-CA'
+        }[currentLang];
+
+        const contentData = translations[currentLang][contentId];
+        if (!contentData) return;
+
+        const textToSpeak = Object.values(contentData)
+            .map(stripHtml)
+            .join('. ');
+
+        speak(textToSpeak, langCode);
+    }
+
+    // 언어 변경
+    function getNestedValue(obj, key) {
+        return key.split('.').reduce((acc, part) => acc && acc[part], obj);
+    }
+
+    function changeLanguage() {
+        if (synth.speaking) {
+            synth.cancel();
+        }
+
+        const lang = document.getElementById('language-select').value;
+        document.documentElement.lang = lang;
+
+        const elementsToTranslate = document.querySelectorAll('[data-translate-key]');
+        
+        elementsToTranslate.forEach(el => {
+            const key = el.dataset.translateKey;
+            const translatedText = getNestedValue(translations[lang], key);
+            
+            if (translatedText !== undefined) {
+                el.innerHTML = translatedText;
+            }
+        });
+    }
+
+    document.getElementById('language-select').addEventListener('change', changeLanguage);
+    
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        loadVoices();
+        changeLanguage();
+    });
+</script>
+
+</body>
+</html>
