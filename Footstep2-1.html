@@ -28,9 +28,9 @@
             Timestamp,
             increment,
             serverTimestamp,
-            query, // (NEW)
-            orderBy, // (NEW)
-            deleteDoc
+            query,
+            orderBy,
+            deleteDoc // deleteDoc 임포트
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import {
             getStorage,
@@ -40,8 +40,6 @@
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
         // --- Firebase 설정 ---
-
-        // Canvas 환경에서 제공하는 Firebase 설정을 사용합니다.
         const firebaseConfig = typeof __firebase_config !== 'undefined'
             ? JSON.parse(__firebase_config)
             : {
@@ -52,41 +50,32 @@
               messagingSenderId: "253275410619",
               appId: "1:253275410619:web:e20db952dc1f12f54f199e"
             };
-
-        // Canvas 환경에서 제공하는 App ID를 사용합니다.
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-map-app';
-
-        // Firebase 앱, 인증, Firestore, Storage 초기화
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
         const storage = getStorage(app);
-
-        let userId = null; // 현재 사용자 ID
+        let userId = null;
 
         // --- Speech Recognition (STT) 설정 ---
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let recognition;
-        let currentRecordingTextarea = null; // 현재 STT가 입력될 textarea
+        let currentRecordingTextarea = null;
         let isRecording = false;
-
         if (SpeechRecognition) {
             recognition = new SpeechRecognition();
-            recognition.continuous = false; // 한 문장씩
-            recognition.lang = 'en-US'; // 기본 영어
+            recognition.continuous = false;
+            recognition.lang = 'en-US';
             recognition.interimResults = false;
             recognition.maxAlternatives = 1;
-
             recognition.onstart = () => {
                 isRecording = true;
-                // 현재 입력창과 연결된 녹음 버튼 찾기
                 const recordBtn = currentRecordingTextarea.closest('form, .new-comment-form, .reply-form').querySelector('.record-btn');
                 if (recordBtn) {
                     recordBtn.textContent = '🛑';
                     recordBtn.classList.add('is-recording');
                 }
             };
-
             recognition.onend = () => {
                 isRecording = false;
                 if (currentRecordingTextarea) {
@@ -98,53 +87,25 @@
                 }
                 currentRecordingTextarea = null;
             };
-
             recognition.onresult = (event) => {
                 const transcript = event.results[event.results.length - 1][0].transcript;
                 if (currentRecordingTextarea) {
-                    currentRecordingTextarea.value += transcript + ' '; // 텍스트 추가
+                    currentRecordingTextarea.value += transcript + ' ';
                 }
             };
-
             recognition.onerror = (event) => {
                 console.error("Speech recognition error", event.error);
-                if (event.error === 'no-speech') {
-                    alert("No speech was detected. Please try again.");
-                } else if (event.error === 'audio-capture') {
-                    alert("Microphone not found. Please check your settings.");
-                } else if (event.error === 'not-allowed') {
-                    alert("Permission to use microphone was denied. Please allow it in your browser settings.");
-                }
-                if (isRecording) {
-                    recognition.stop();
-                }
-                // onend가 자동으로 호출되므로 UI 정리는 거기서 처리됨
+                if (isRecording) recognition.stop();
             };
-        } else {
-            console.warn("Speech Recognition not supported in this browser.");
         }
 
-
         // --- 공용 데이터 경로 ---
-        // 모든 사용자가 데이터를 공유해야 하므로 public 경로를 사용합니다.
         const postsCollectionPath = `artifacts/${appId}/public/data/student-maps`;
 
         // --- UI 요소 ---
         const postsGrid = document.getElementById('posts-grid');
         const addPostCard = document.getElementById('add-post-card');
         const loadingOverlay = document.getElementById('loading-overlay');
-        const userIdDisplay = document.getElementById('user-id-display');
-
-        // --- (REMOVED) 새 업로드 Modal UI 요소 ---
-        // const uploadModal = document.getElementById('upload-modal');
-        // const cancelModalBtn = document.getElementById('cancel-modal-btn');
-        // const postModalForm = document.getElementById('post-modal-form');
-        // const modalFileInput = document.getElementById('modal-file-input');
-        // const modalImagePreview = document.getElementById('modal-image-preview');
-        // const modalDescriptionInput = document.getElementById('modal-description-input');
-        // const modalRecordBtn = document.getElementById('modal-record-btn');
-
-        // --- (NEW) 새 업로드 폼 UI 요소 (add-post-card 내부) ---
         const newPostForm = document.getElementById('new-post-form');
         const newFileInput = document.getElementById('new-file-input');
         const newImagePreview = document.getElementById('new-image-preview');
@@ -152,8 +113,6 @@
         const newFileLabel = document.getElementById('new-file-label');
         const newDescriptionInput = document.getElementById('new-description-input');
         const newRecordBtn = document.getElementById('new-record-btn');
-
-        // --- 템플릿 ---
         const postTemplate = document.getElementById('post-template');
         const commentTemplate = document.getElementById('comment-template');
 
@@ -171,11 +130,8 @@
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     userId = user.uid;
-                    console.log("Sign-in successful:", userId);
-                    // userIdDisplay.textContent = `내 ID: ${userId} (친구에게 알려주세요!)`; // User ID 표시 제거
-                    loadPosts(); // 사용자가 인증되면 게시물 로드
+                    loadPosts();
                 } else {
-                    // Canvas 토큰이 있으면 사용, 없으면 익명 로그인
                     try {
                         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                             await signInWithCustomToken(auth, __initial_auth_token);
@@ -184,7 +140,6 @@
                         }
                     } catch (error) {
                         console.error("Sign-in failed:", error);
-                        userIdDisplay.textContent = "Failed to sign in. Please refresh.";
                     }
                 }
             });
@@ -192,52 +147,27 @@
 
         // --- 2. 게시물 로드 (실시간) ---
         function loadPosts() {
-            // (MODIFIED) postsRef에 orderBy('createdAt') 쿼리 추가
-            // Firestore에서 직접 정렬하며, docChanges()를 사용하기 위해 필요합니다.
-            // (MODIFIED AGAIN) orderBy 제거. 수동 색인(index) 생성이 필요하여 버그를 유발함.
-            // const postsRef = query(collection(db, postsCollectionPath), orderBy("createdAt", "asc"));
             const postsRef = query(collection(db, postsCollectionPath));
-
-            // onSnapshot으로 실시간 변경 감지
             onSnapshot(postsRef, (snapshot) => {
-
-                // (MODIFIED) "모두 지우고 다시 그리기" 대신 docChanges() 사용
                 snapshot.docChanges().forEach((change) => {
                     const postData = { id: change.doc.id, ...change.doc.data() };
-
+                    const existingCard = document.querySelector(`.post-card[data-post-id="${postData.id}"]`);
                     if (change.type === "added") {
-                        // 새 게시물이 추가됨 (renderPost가 addPostCard 앞에 추가)
                         renderPost(postData);
                     }
-                    if (change.type === "modified") {
-                        // 기존 게시물(이모지)이 수정됨
-                        // 1. 기존 카드 찾기
-                        const existingCard = document.querySelector(`.post-card[data-post-id="${postData.id}"]`);
-                        if (existingCard) {
-                            // 2. 이모지 카운트만 업데이트
-                            const reactionsContainer = existingCard.querySelector('.reactions-container');
-                            ['heart', 'smile'].forEach(emojiName => {
-                                const countSpan = reactionsContainer.querySelector(`[data-emoji="${emojiName}"] .count`);
-                                if(countSpan) {
-                                    countSpan.textContent = postData.reactions[emojiName] || 0;
-                                }
-                            });
-                            // (참고) 설명 등이 수정될 경우, 이 부분에서 더 많은 UI를 업데이트할 수 있습니다.
-                        }
+                    if (change.type === "modified" && existingCard) {
+                        const reactionsContainer = existingCard.querySelector('.reactions-container');
+                        ['heart', 'smile'].forEach(emojiName => {
+                            const countSpan = reactionsContainer.querySelector(`[data-emoji="${emojiName}"] .count`);
+                            if(countSpan) countSpan.textContent = postData.reactions[emojiName] || 0;
+                        });
                     }
-                    if (change.type === "removed") {
-                        // 게시물이 삭제됨
-                        const existingCard = document.querySelector(`.post-card[data-post-id="${postData.id}"]`);
-                        if (existingCard) {
-                            existingCard.remove();
-                        }
+                    if (change.type === "removed" && existingCard) {
+                        existingCard.remove();
                     }
                 });
-
-            // (NEW) onSnapshot 에러 핸들러 추가
             }, (error) => {
-                console.error("Failed to load posts (onSnapshot error):", error);
-                alert("Error: Could not load map data. Please check console and refresh.");
+                console.error("Failed to load posts:", error);
             });
         }
 
@@ -245,81 +175,35 @@
         function renderPost(postData) {
             const postCard = postTemplate.content.cloneNode(true).firstElementChild;
             postCard.dataset.postId = postData.id;
-
-            // 이미지 설정
             const img = postCard.querySelector('.post-image');
             img.src = postData.imageUrl;
-            img.alt = "Student's uploaded map";
-            img.onerror = () => {
-                img.src = `https://placehold.co/400x300/F871B1/FFFFFF?text=IMAGE+FAILED`;
-                img.alt = "Could not load image.";
-            };
-
-            // --- (MODIFIED) 게시물 설명 표시 ---
             const descriptionContainer = postCard.querySelector('.post-description-container');
             const descriptionText = descriptionContainer.querySelector('.post-description-text');
-            // const descriptionForm = descriptionContainer.querySelector('.description-form'); // REMOVED
-
             if (postData.description) {
                 descriptionText.textContent = postData.description;
-                descriptionContainer.classList.remove('hidden'); // 컨테이너를 보여줌
+                descriptionContainer.classList.remove('hidden');
             } else {
-                descriptionContainer.classList.add('hidden'); // 컨테이너를 숨김
+                descriptionContainer.classList.add('hidden');
             }
-
-            // (REMOVED) Description form event listeners
-            // ... (descRecordBtn, descSaveBtn related logic removed) ...
-
-
-            // 이모지 반응 렌더링 및 이벤트 리스너
             const reactionsContainer = postCard.querySelector('.reactions-container');
             ['heart', 'smile'].forEach(emojiName => {
                 const btn = reactionsContainer.querySelector(`[data-emoji="${emojiName}"]`);
-                const countSpan = btn.querySelector('.count');
-                countSpan.textContent = postData.reactions[emojiName] || 0;
-
+                btn.querySelector('.count').textContent = postData.reactions[emojiName] || 0;
                 btn.onclick = () => handleReactionClick(postData.id, emojiName);
             });
-
-            // 댓글 폼 이벤트 리스너
-            const postCommentBtn = postCard.querySelector('.post-comment-btn');
-            const commentInput = postCard.querySelector('.comment-input');
-            const recordBtn = postCard.querySelector('.record-btn');
-            // const audioPreview = postCard.querySelector('.audio-preview'); // REMOVED
-
-            postCommentBtn.onclick = (e) => handlePostComment(e, postData.id);
-            recordBtn.onclick = (e) => handleSpeechRecognition(e, recordBtn.closest('.new-comment-form'));
-
-            // 댓글 목록 로드
-            const commentsList = postCard.querySelector('.comments-list');
-            loadComments(postData.id, commentsList);
-
-            // '새 지도 올리기' 카드 *앞에* 새 게시물 추가
-            // (MODIFIED) addPostCard는 항상 첫 번째이므로, 그 다음에 추가합니다.
-            // postsGrid.insertBefore(postCard, addPostCard.nextSibling); // [폼], [글3], [글2], [글1] ...
-
-            // (NEW - MODIFIED) addPostCard *앞에* 추가하여 폼이 항상 마지막에 오도록 합니다.
-            postsGrid.insertBefore(postCard, addPostCard); // [글1], [글2], [글3] ... [폼]
+            postCard.querySelector('.post-comment-btn').onclick = (e) => handlePostComment(e, postData.id);
+            postCard.querySelector('.record-btn').onclick = (e) => handleSpeechRecognition(e, e.target.closest('.new-comment-form'));
+            loadComments(postData.id, postCard.querySelector('.comments-list'));
+            postsGrid.insertBefore(postCard, addPostCard);
         }
 
         // --- 4. 댓글 로드 (실시간) ---
         function loadComments(postId, commentsListContainer) {
             const commentsRef = collection(db, postsCollectionPath, postId, 'comments');
-
-            onSnapshot(commentsRef, (snapshot) => {
-                commentsListContainer.innerHTML = ''; // 기존 댓글 삭제
-
-                const comments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-                // (MODIFIED) 댓글 정렬 (createdAt이 null일 경우 대비)
-                comments.sort((a, b) => {
-                    const timeA = a.createdAt?.toMillis() || 0;
-                    const timeB = b.createdAt?.toMillis() || 0;
-                    return timeA - timeB;
-                });
-
-                comments.forEach(comment => {
-                    renderComment(comment, commentsListContainer, postId);
+            onSnapshot(query(commentsRef, orderBy("createdAt", "asc")), (snapshot) => {
+                commentsListContainer.innerHTML = '';
+                snapshot.forEach(doc => {
+                    renderComment({ id: doc.id, ...doc.data() }, commentsListContainer, postId);
                 });
             });
         }
@@ -327,191 +211,66 @@
         // --- 5. 댓글 카드 렌더링 ---
         function renderComment(commentData, commentsListContainer, postId) {
             const commentCard = commentTemplate.content.cloneNode(true).firstElementChild;
-            commentCard.dataset.commentId = commentData.id;
-
-            const textEl = commentCard.querySelector('.comment-text');
-            textEl.textContent = commentData.text || "Comment"; // "Voice Comment" -> "Comment"
-
-            // 작성자 표시 (익명 또는 ID)
-            const authorEl = document.createElement('span');
-            authorEl.className = 'text-xs text-gray-500 ml-2';
-            authorEl.textContent = `(by anonymous)`; // 익명으로 표시
-            textEl.appendChild(authorEl);
-
-
-            // 오디오 플레이어 (REMOVED)
-            const audioEl = commentCard.querySelector('.comment-audio');
-            if (audioEl) audioEl.remove();
-
-
-            // '답글 달기' 버튼 (답글의 답글은 막음)
+            commentCard.querySelector('.comment-text').textContent = commentData.text || "Comment";
             const replyBtn = commentCard.querySelector('.reply-btn');
             const replyForm = commentCard.querySelector('.reply-form');
-
-            if (replyBtn && replyForm) {
-                replyBtn.onclick = () => {
-                    replyForm.style.display = replyForm.style.display === 'none' ? 'block' : 'none';
-                };
-
-                // 답글 폼 이벤트 리스너
-                const postReplyBtn = replyForm.querySelector('.post-reply-btn');
-                const recordBtn = replyForm.querySelector('.record-btn');
-
-                postReplyBtn.onclick = (e) => handlePostReply(e, postId, commentData.id);
-                recordBtn.onclick = (e) => handleSpeechRecognition(e, replyForm);
-            }
-
-            // 답글 목록 로드
-            const repliesList = commentCard.querySelector('.replies-list');
-            loadReplies(postId, commentData.id, repliesList);
-
+            replyBtn.onclick = () => replyForm.style.display = replyForm.style.display === 'none' ? 'block' : 'none';
+            replyForm.querySelector('.post-reply-btn').onclick = (e) => handlePostReply(e, postId, commentData.id);
+            replyForm.querySelector('.record-btn').onclick = (e) => handleSpeechRecognition(e, replyForm);
+            loadReplies(postId, commentData.id, commentCard.querySelector('.replies-list'));
             commentsListContainer.appendChild(commentCard);
-
-            // 스와이프 삭제 이벤트 추가
-            addSwipeToDelete(commentCard, () => {
-                deleteComment(postId, commentData.id);
-            });
+            addSwipeToDelete(commentCard, () => deleteComment(postId, commentData.id));
         }
 
         // --- 6. 답글 로드 (실시간) ---
         function loadReplies(postId, commentId, repliesListContainer) {
             const repliesRef = collection(db, postsCollectionPath, postId, 'comments', commentId, 'replies');
-
-            onSnapshot(repliesRef, (snapshot) => {
-                repliesListContainer.innerHTML = ''; // 기존 답글 삭제
-
-                const replies = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-                // (MODIFIED) 답글 정렬 (createdAt이 null일 경우 대비)
-                replies.sort((a, b) => {
-                    const timeA = a.createdAt?.toMillis() || 0;
-                    const timeB = b.createdAt?.toMillis() || 0;
-                    return timeA - timeB;
-                });
-
-                replies.forEach(reply => {
-                    renderReply(reply, repliesListContainer, postId, commentId);
+            onSnapshot(query(repliesRef, orderBy("createdAt", "asc")), (snapshot) => {
+                repliesListContainer.innerHTML = '';
+                snapshot.forEach(doc => {
+                    renderReply({ id: doc.id, ...doc.data() }, repliesListContainer, postId, commentId);
                 });
             });
         }
 
         // --- 7. 답글 카드 렌더링 ---
         function renderReply(replyData, repliesListContainer, postId, commentId) {
-            // 답글은 댓글 템플릿을 재사용하되, 'Reply' 버튼은 숨김
             const replyCard = commentTemplate.content.cloneNode(true).firstElementChild;
-            replyCard.dataset.replyId = replyData.id;
-
-            const textEl = replyCard.querySelector('.comment-text');
-            textEl.textContent = replyData.text || "Reply";
-
-            // 작성자 표시
-            const authorEl = document.createElement('span');
-            authorEl.className = 'text-xs text-gray-500 ml-2';
-            authorEl.textContent = `(by anonymous)`;
-            textEl.appendChild(authorEl);
-
-            // 오디오 플레이어 (REMOVED)
-            const audioEl = replyCard.querySelector('.comment-audio');
-            if (audioEl) audioEl.remove();
-
-            // 답글의 'Reply' 버튼 및 폼 숨기기
-            const replyBtn = replyCard.querySelector('.reply-btn');
-            if (replyBtn) replyBtn.remove();
-
-            const replyForm = replyCard.querySelector('.reply-form');
-            if (replyForm) replyForm.remove();
-
-            // 답글의 답글 목록 숨기기
-            const repliesList = replyCard.querySelector('.replies-list');
-            if (repliesList) repliesList.remove();
-
+            replyCard.querySelector('.comment-text').textContent = replyData.text || "Reply";
+            replyCard.querySelector('.reply-btn').remove();
+            replyCard.querySelector('.reply-form').remove();
+            replyCard.querySelector('.replies-list').remove();
             repliesListContainer.appendChild(replyCard);
-
-            // 스와이프 삭제 이벤트 추가
-            addSwipeToDelete(replyCard, () => {
-                deleteReply(postId, commentId, replyData.id);
-            });
+            addSwipeToDelete(replyCard, () => deleteReply(postId, commentId, replyData.id));
         }
-
-        // --- 7.5. 파일 업로드 (공용 함수) ---
+        
+        // --- 7.5. 파일 업로드 ---
         function uploadFile(file, storagePath) {
             return new Promise((resolve, reject) => {
-                const storageRef = ref(storage, storagePath);
-                const uploadTask = uploadBytesResumable(storageRef, file);
-
-                uploadTask.on('state_changed',
-                    (snapshot) => {
-                        // 업로드 진행률 (필요시 사용)
-                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        console.log('Upload is ' + progress + '% done');
-                    },
-                    (error) => {
-                        console.error("Upload failed:", error);
-                        reject(error);
-                    },
-                    async () => {
-                        // 업로드 완료 후 다운로드 URL 받기
-                        try {
-                            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                            resolve(downloadURL);
-                        } catch (error) {
-                            reject(error);
-                        }
-                    }
-                );
+                const uploadTask = uploadBytesResumable(ref(storage, storagePath), file);
+                uploadTask.on('state_changed', null, reject, () => getDownloadURL(uploadTask.snapshot.ref).then(resolve).catch(reject));
             });
         }
 
-        // --- 8. 새 게시물 추가 --- (MODIFIED - Form 방식으로 변경)
+        // --- 8. 새 게시물 추가 ---
         async function submitNewPost(e) {
-            e.preventDefault(); // 폼 기본 제출 방지
-
+            e.preventDefault();
             const file = newFileInput.files[0];
             const description = newDescriptionInput.value.trim();
-
-            if (!file) {
-                alert("Please select an image to upload.");
-                return;
-            }
-            if (!description) {
-                alert("Please enter a description.");
-                return;
-            }
-
+            if (!file || !description) return alert("Please select an image and enter a description.");
             showLoading("Uploading map...");
-
             try {
-                // 1. 파일 업로드
                 const fileId = `${Date.now()}-${file.name}`;
-                // (FIX) 'data' 세그먼트를 스토리지 경로에 추가하여 권한 오류 수정
                 const imagePath = `artifacts/${appId}/public/data/images/${fileId}`;
                 const imageUrl = await uploadFile(file, imagePath);
-
-                // 2. Firestore에 새 문서 추가 (설명 포함)
-                const postsRef = collection(db, postsCollectionPath);
-                await addDoc(postsRef, {
-                    imageUrl: imageUrl,
-                    description: description, // (MODIFIED) 설명 바로 추가
-                    userId: userId,
-                    createdAt: serverTimestamp(), // 서버 시간 기준
-                    reactions: {
-                        heart: 0,
-                        smile: 0
-                    }
+                await addDoc(collection(db, postsCollectionPath), {
+                    imageUrl, description, userId, createdAt: serverTimestamp(), reactions: { heart: 0, smile: 0 }
                 });
-
-                console.log("New post added successfully!");
-
-                // (NEW) 폼 리셋
                 newPostForm.reset();
                 newImagePreview.src = '';
                 newImagePreviewContainer.classList.add('hidden');
-                newFileLabel.classList.remove('hidden'); // '+' 라벨 다시 보이기
-
+                newFileLabel.classList.remove('hidden');
             } catch (error) {
-                console.error("Failed to add new post:", error);
-                // alert("Failed to upload post. Please try again.");
-                // (MODIFIED) 정확한 에러 메시지를 알림창에 표시
                 alert("Failed to upload post. Error: " + error.message);
             } finally {
                 hideLoading();
@@ -520,53 +279,20 @@
 
         // --- 9. 이모지 반응 클릭 ---
         async function handleReactionClick(postId, emojiName) {
-            const postRef = doc(db, postsCollectionPath, postId);
-
-            try {
-                // increment()를 사용해 동시 클릭에도 안전하게 카운트
-                await updateDoc(postRef, {
-                    [`reactions.${emojiName}`]: increment(1)
-                });
-            } catch (error) {
-                console.error("Reaction update failed:", error);
-            }
+            await updateDoc(doc(db, postsCollectionPath, postId), { [`reactions.${emojiName}`]: increment(1) });
         }
 
         // --- 10. 댓글 게시 ---
         async function handlePostComment(e, postId) {
-        const form = e.target.closest('.new-comment-form');
-        const input = form.querySelector('.comment-input');
-        // const audioPreview = form.querySelector('.audio-preview'); // REMOVED
-        const text = input.value.trim();
-        // const audioBlob = audioPreview.src ? await fetch(audioPreview.src).then(r => r.blob()) : null; // REMOVED
-
-        if (!text) { // 오디오 체크 제거
-            alert("Please enter a comment!");
-            return;
-        }
-
-        showLoading("Posting comment...");
-
-        try {
-            // let audioUrl = null; // REMOVED
-            // ... (audio upload logic removed) ...
-
-            // Firestore에 댓글 추가
-            const commentsRef = collection(db, postsCollectionPath, postId, 'comments');
-            await addDoc(commentsRef, {
-                text: text,
-                // audioUrl: audioUrl, // REMOVED
-                userId: userId,
-                createdAt: serverTimestamp()
-            });
-
-            // 폼 초기화
-            input.value = '';
-            // audioPreview.src = ''; // REMOVED
-            // audioPreview.classList.add('hidden'); // REMOVED
-            // form.querySelector('.record-btn').textContent = '🎤'; // STT가 자동으로 처리
-        } catch (error) {
-                console.error("Failed to post comment:", error);
+            const form = e.target.closest('.new-comment-form');
+            const input = form.querySelector('.comment-input');
+            const text = input.value.trim();
+            if (!text) return alert("Please enter a comment!");
+            showLoading("Posting comment...");
+            try {
+                await addDoc(collection(db, postsCollectionPath, postId, 'comments'), { text, userId, createdAt: serverTimestamp() });
+                input.value = '';
+            } catch (error) {
                 alert("Failed to post comment.");
             } finally {
                 hideLoading();
@@ -575,148 +301,133 @@
 
         // --- 11. 답글 게시 ---
         async function handlePostReply(e, postId, commentId) {
-        const form = e.target.closest('.reply-form');
-        const input = form.querySelector('.reply-input');
-        // const audioPreview = form.querySelector('.audio-preview'); // REMOVED
-        const text = input.value.trim();
-        // const audioBlob = audioPreview.src ? await fetch(audioPreview.src).then(r => r.blob()) : null; // REMOVED
-
-        if (!text) { // 오디오 체크 제거
-            alert("Please enter a reply!");
-            return;
-        }
-
-        showLoading("Posting reply...");
-
-        try {
-            // let audioUrl = null; // REMOVED
-            // ... (audio upload logic removed) ...
-
-            // Firestore에 답글 추가
-            const repliesRef = collection(db, postsCollectionPath, postId, 'comments', commentId, 'replies');
-            await addDoc(repliesRef, {
-                text: text,
-                // audioUrl: audioUrl, // REMOVED
-                userId: userId,
-                createdAt: serverTimestamp()
-            });
-
-            // 폼 초기화
-            input.value = '';
-            // audioPreview.src = ''; // REMOVED
-            // audioPreview.classList.add('hidden'); // REMOVED
-            // form.querySelector('.record-btn').textContent = '🎤'; // STT가 자동으로 처리
-            form.style.display = 'none'; // 폼 숨기기
-        } catch (error) {
-                console.error("Failed to post reply:", error);
+            const form = e.target.closest('.reply-form');
+            const input = form.querySelector('.reply-input');
+            const text = input.value.trim();
+            if (!text) return alert("Please enter a reply!");
+            showLoading("Posting reply...");
+            try {
+                await addDoc(collection(db, postsCollectionPath, postId, 'comments', commentId, 'replies'), { text, userId, createdAt: serverTimestamp() });
+                form.style.display = 'none';
+                input.value = '';
+            } catch (error) {
                 alert("Failed to post reply.");
             } finally {
                 hideLoading();
             }
         }
 
-        // --- (REMOVED) 11.5. 설명 저장 ---
-        // async function handleSaveDescription(e, postId) { ... }
-
-        // --- 12. 음성 녹음 토글 --- (REMOVED)
-        // ... (toggleRecording function removed) ...
-
-        // --- (NEW) 12. Speech-to-Text (STT) 핸들러 ---
+        // --- 12. STT 핸들러 ---
         function handleSpeechRecognition(e, formElement) {
-            e.preventDefault(); // 폼 제출 방지 (필요시)
-            if (!SpeechRecognition) {
-                alert("Speech recognition is not supported in your browser.");
-                return;
-            }
-
-            const targetInput = formElement.querySelector('textarea, .comment-input, .reply-input, #new-description-input'); // (MODIFIED)
-            if (!targetInput) {
-                console.error("STT Error: Could not find target textarea.");
-                return;
-            }
-
+            e.preventDefault();
+            if (!SpeechRecognition) return alert("Speech recognition is not supported.");
+            const targetInput = formElement.querySelector('textarea, .comment-input, .reply-input, #new-description-input');
+            if (!targetInput) return;
             if (isRecording) {
-                if (currentRecordingTextarea === targetInput) {
-                    // 같은 버튼을 눌러 중지
-                    recognition.stop();
-                } else {
-                    // 다른 녹음이 진행 중
-                    alert("Another recording is in progress. Please complete it first.");
-                }
+                if (currentRecordingTextarea === targetInput) recognition.stop();
+                else alert("Another recording is in progress.");
             } else {
-                // 새 녹음 시작
                 currentRecordingTextarea = targetInput;
                 try {
                     recognition.start();
                 } catch (err) {
-                    console.error("STT start error:", err);
-                    if (isRecording) {
-                        recognition.stop();
-                    }
+                    if (isRecording) recognition.stop();
                 }
             }
         }
 
-        // --- (NEW) 12.5. 스와이프하여 삭제하는 기능 ---
+        // --- 12.5. 스와이프/드래그하여 삭제하는 기능 (터치 & 마우스 모두 지원) ---
         function addSwipeToDelete(element, deleteCallback) {
-            let touchstartX = 0;
-            let touchendX = 0;
-            let isSwiping = false;
+            let isDragging = false;
+            let startX = 0;
+            const swipeThreshold = 50; // 50px 이상 움직여야 반응
+            const cardContent = element.querySelector('.comment-card-content');
 
-            const swipeThreshold = 50; // 50px 이상 스와이프해야 반응
+            function getEventX(e) {
+                return e.touches ? e.touches[0].clientX : e.clientX;
+            }
 
-            element.addEventListener('touchstart', e => {
-                touchstartX = e.changedTouches[0].screenX;
-                isSwiping = true;
-            }, { passive: true });
+            function onDragStart(e) {
+                // 오른쪽 클릭이나 다른 버튼은 무시
+                if (e.button && e.button !== 0) return;
+                
+                isDragging = true;
+                startX = getEventX(e);
+                // 드래그 중 텍스트 선택 방지
+                e.preventDefault();
+                
+                // 이벤트 리스너를 window에 등록하여 요소 밖으로 나가도 감지
+                window.addEventListener('mousemove', onDragMove);
+                window.addEventListener('touchmove', onDragMove, { passive: false });
+                window.addEventListener('mouseup', onDragEnd);
+                window.addEventListener('touchend', onDragEnd);
+            }
 
-            element.addEventListener('touchmove', e => {
-                if (!isSwiping) return;
-                const moveX = e.changedTouches[0].screenX - touchstartX;
-                if (moveX < 0) { // 왼쪽으로 스와이프할 때만
-                    element.style.transform = `translateX(${moveX}px)`;
-                }
-            }, { passive: true });
+            function onDragMove(e) {
+                if (!isDragging) return;
+                
+                // 스크롤과 같은 기본 동작 방지
+                e.preventDefault();
 
-            element.addEventListener('touchend', e => {
-                if (!isSwiping) return;
-                isSwiping = false;
-                touchendX = e.changedTouches[0].screenX;
-                handleSwipeGesture();
-            });
+                const currentX = getEventX(e);
+                let moveX = currentX - startX;
 
-            function handleSwipeGesture() {
-                const swipeDistance = touchstartX - touchendX;
-                if (swipeDistance > swipeThreshold) {
+                // 오른쪽으로 스와이프하는 것은 막음
+                if (moveX > 0) moveX = 0;
+                // 너무 많이 스와이프 되는 것 방지 (버튼 너비의 1.5배)
+                if (moveX < -120) moveX = -120;
+                
+                cardContent.style.transition = 'none'; // 드래그 중에는 transition 없애기
+                cardContent.style.transform = `translateX(${moveX}px)`;
+            }
+
+            function onDragEnd(e) {
+                if (!isDragging) return;
+                isDragging = false;
+
+                const finalX = cardContent.getBoundingClientRect().left;
+                const originalX = element.getBoundingClientRect().left;
+                const diffX = originalX - finalX;
+                
+                cardContent.style.transition = 'transform 0.3s ease-in-out';
+
+                if (diffX > swipeThreshold) {
                     // 삭제 버튼 표시
+                    cardContent.style.transform = 'translateX(-80px)';
                     element.classList.add('swiped');
-                    element.style.transform = 'translateX(-80px)';
                 } else {
                     // 원위치
+                    cardContent.style.transform = 'translateX(0)';
                     element.classList.remove('swiped');
-                    element.style.transform = 'translateX(0)';
                 }
+                
+                // window에 등록했던 이벤트 리스너 제거
+                window.removeEventListener('mousemove', onDragMove);
+                window.removeEventListener('touchmove', onDragMove);
+                window.removeEventListener('mouseup', onDragEnd);
+                window.removeEventListener('touchend', onDragEnd);
             }
+
+            // 마우스와 터치 시작 이벤트 등록
+            element.addEventListener('mousedown', onDragStart);
+            element.addEventListener('touchstart', onDragStart, { passive: false });
 
             // 삭제 버튼 클릭 이벤트
             const deleteBtn = element.querySelector('.delete-btn');
             if (deleteBtn) {
                 deleteBtn.addEventListener('click', (e) => {
-                    e.stopPropagation(); // 이벤트 버블링 방지
+                    e.stopPropagation();
                     deleteCallback();
                 });
             }
         }
 
-
-        // --- (NEW) 12.6. 댓글 및 답글 삭제 함수 ---
+        // --- 12.6. 댓글 및 답글 삭제 함수 ---
         async function deleteComment(postId, commentId) {
             const commentRef = doc(db, postsCollectionPath, postId, 'comments', commentId);
             try {
                 await deleteDoc(commentRef);
-                console.log("Comment deleted successfully");
             } catch (error) {
-                console.error("Error deleting comment: ", error);
                 alert("Failed to delete comment.");
             }
         }
@@ -725,19 +436,12 @@
             const replyRef = doc(db, postsCollectionPath, postId, 'comments', commentId, 'replies', replyId);
             try {
                 await deleteDoc(replyRef);
-                console.log("Reply deleted successfully");
             } catch (error) {
-                console.error("Error deleting reply: ", error);
                 alert("Failed to delete reply.");
             }
         }
 
-
-        // --- (REMOVED) 13. 업로드 Modal 함수 ---
-        // function openUploadModal() { ... }
-        // function closeUploadModal() { ... }
-
-        // (NEW) 새 게시물 폼 파일 입력 시 미리보기
+        // --- 파일 입력 시 미리보기 ---
         newFileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -745,240 +449,76 @@
                 reader.onload = (event) => {
                     newImagePreview.src = event.target.result;
                     newImagePreviewContainer.classList.remove('hidden');
-                    newFileLabel.classList.add('hidden'); // '+' 라벨 숨기기
+                    newFileLabel.classList.add('hidden');
                 };
                 reader.readAsDataURL(file);
             }
         });
 
-
         // --- 이벤트 리스너 연결 ---
-
-        // (NEW) 새 게시물 폼 리스너
-        newPostForm.addEventListener('submit', submitNewPost); // 'handleAddNewPost' -> 'submitNewPost'로 수정
+        newPostForm.addEventListener('submit', submitNewPost);
         newRecordBtn.addEventListener('click', (e) => handleSpeechRecognition(e, newPostForm));
-
-        // (REMOVED) Modal 관련 리스너
-        // addPostCard.addEventListener('click', openUploadModal);
-        // cancelModalBtn.addEventListener('click', closeUploadModal);
-        // postModalForm.addEventListener('submit', submitNewPost);
-        // modalRecordBtn.addEventListener('click', (e) => handleSpeechRecognition(e, postModalForm));
 
         // --- 앱 시작 ---
         initializeAppAuth();
-
     </script>
     
-    <!-- 아이들을 위한 귀여운 스타일 -->
     <style>
+        /* (기존 스타일은 변경 없음) */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #F0F9FF; color: #334155; }
+        h1 { font-weight: 900; font-size: 2.5rem; line-height: 1.2; color: #1E40AF; text-shadow: 2px 2px 0 #BFDBFE; }
+        h3 { font-weight: 700; font-size: 1.125rem; color: #1E3A8A; border-bottom: 2px solid #DBEAFE; padding-bottom: 4px; margin-bottom: 12px; }
+        .card { background-color: white; border-radius: 1.5rem; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05); transition: all 0.2s ease-in-out; border: 2px solid white; }
+        .card:hover { box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1); border-color: #93C5FD; }
+        #add-post-card { border-style: dashed; border-width: 4px; border-color: #93C5FD; background-color: #EFF6FF; cursor: pointer; }
+        #add-post-card:hover { background-color: #DBEAFE; border-color: #60A5FA; }
+        #add-post-card p { font-size: 1.125rem; font-weight: 700; color: #2563EB; }
+        #new-file-label { border-style: dashed; border-width: 4px; border-color: #93C5FD; background-color: #EFF6FF; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 1.5rem; min-height: 250px; border-radius: 1rem; }
+        #new-file-label:hover { background-color: #DBEAFE; border-color: #60A5FA; }
+        #new-image-preview-container { border: 2px solid #DBEAFE; border-radius: 1rem; min-height: 250px; }
+        .btn { padding: 0.75rem 1.5rem; border-radius: 9999px; font-weight: 700; font-size: 1rem; color: white; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); }
+        .btn:active { transform: translateY(0); }
+        .btn-pink { background-color: #F472B6; }
+        .btn-pink:hover { background-color: #EC4899; }
+        .btn-blue { background-color: #60A5FA; }
+        .btn-blue:hover { background-color: #3B82F6; }
+        textarea { border: 2px solid #DBEAFE; border-radius: 1rem; padding: 0.75rem 1rem; transition: border-color 0.2s, box-shadow 0.2s; }
+        textarea:focus { border-color: #60A5FA; box-shadow: 0 0 0 3px #BFDBFE; outline: none; }
+        .record-btn { font-size: 1.5rem; padding: 0.5rem; width: 3rem; height: 3rem; border-radius: 9999px; background-color: #FEE2E2; color: #EF4444; transition: all 0.2s; }
+        .record-btn:hover { background-color: #FECACA; }
+        .record-btn.is-recording { background-color: #EF4444; color: white; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 #F87171; } 70% { box-shadow: 0 0 0 10px rgba(248, 113, 113, 0); } 100% { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0); } }
+        .reaction-btn { font-size: 1.5rem; padding: 0.5rem 1rem; border-radius: 9999px; background-color: #F3F4F6; transition: all 0.2s; }
+        .reaction-btn:hover { background-color: #E5E7EB; transform: scale(1.1); }
+        .reaction-btn .count { font-size: 1rem; font-weight: 700; color: #4B5563; margin-left: 0.5rem; }
+        audio { width: 100%; height: 40px; margin-top: 8px; }
+        #loading-overlay { background-color: rgba(255, 255, 255, 0.8); backdrop-filter: blur(4px); }
+        .replies-list { margin-left: 1.5rem; padding-left: 1rem; border-left: 2px solid #E5E7EB; }
         
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #F0F9FF; /* 아주 연한 하늘색 */
-            color: #334155; /* 짙은 회색 */
-        }
-
-        h1 {
-            font-weight: 900; /* 아주 굵게 */
-            font-size: 2.5rem; /* 40px */
-            line-height: 1.2;
-            color: #1E40AF; /* 짙은 파랑 */
-            text-shadow: 2px 2px 0 #BFDBFE; /* 연한 파랑 그림자 */
-        }
-        
-        h3 {
-            font-weight: 700;
-            font-size: 1.125rem; /* 18px */
-            color: #1E3A8A;
-            border-bottom: 2px solid #DBEAFE;
-            padding-bottom: 4px;
-            margin-bottom: 12px;
-        }
-
-        /* 카드 기본 스타일 */
-        .card {
-            background-color: white;
-            border-radius: 1.5rem; /* 24px, 더 둥글게 */
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
-            transition: all 0.2s ease-in-out;
-            border: 2px solid white;
-        }
-        .card:hover {
-            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-            border-color: #93C5FD; /* hover 시 연한 파랑 테두리 */
-        }
-
-        /* 새 지도 추가 카드 */
-        #add-post-card {
-            border-style: dashed;
-            border-width: 4px;
-            border-color: #93C5FD; /* 연한 파랑 */
-            background-color: #EFF6FF; /* 아주 연한 파랑 */
-            cursor: pointer;
-        }
-        #add-post-card:hover {
-            background-color: #DBEAFE;
-            border-color: #60A5FA;
-        }
-        #add-post-card p {
-            font-size: 1.125rem; /* 18px */
-            font-weight: 700;
-            color: #2563EB;
-        }
-
-        /* (NEW) 새 게시물 폼 스타일 */
-        #new-file-label {
-            border-style: dashed;
-            border-width: 4px;
-            border-color: #93C5FD;
-            background-color: #EFF6FF;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 1.5rem;
-            min-height: 250px;
-            border-radius: 1rem;
-        }
-        #new-file-label:hover {
-            background-color: #DBEAFE;
-            border-color: #60A5FA;
-        }
-        #new-image-preview-container {
-            border: 2px solid #DBEAFE;
-            border-radius: 1rem;
-            min-height: 250px; /* 라벨과 최소 높이 통일 */
-        }
-
-
-        /* 버튼 기본 스타일 */
-        .btn {
-            padding: 0.75rem 1.5rem; /* 12px 24px */
-            border-radius: 9999px; /* 완전 둥글게 */
-            font-weight: 700;
-            font-size: 1rem; /* 16px */
-            color: white;
-            transition: all 0.2s;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-        }
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-        }
-        .btn:active {
-            transform: translateY(0);
-        }
-
-        /* 핑크 버튼 */
-        .btn-pink {
-            background-color: #F472B6; /* 핑크 */
-        }
-        .btn-pink:hover {
-            background-color: #EC4899;
-        }
-        
-        /* 파랑 버튼 */
-        .btn-blue {
-            background-color: #60A5FA; /* 파랑 */
-        }
-        .btn-blue:hover {
-            background-color: #3B82F6;
-        }
-        
-        /* 댓글 입력창 */
-        textarea {
-            border: 2px solid #DBEAFE;
-            border-radius: 1rem; /* 16px */
-            padding: 0.75rem 1rem;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        textarea:focus {
-            border-color: #60A5FA;
-            box-shadow: 0 0 0 3px #BFDBFE;
-            outline: none;
-        }
-        
-        /* 녹음 버튼 */
-        .record-btn {
-            font-size: 1.5rem; /* 24px */
-            padding: 0.5rem; /* 8px */
-            width: 3rem; /* 48px */
-            height: 3rem; /* 48px */
-            border-radius: 9999px;
-            background-color: #FEE2E2; /* 연한 빨강 */
-            color: #EF4444; /* 빨강 */
-            transition: all 0.2s;
-        }
-        .record-btn:hover {
-            background-color: #FECACA;
-        }
-        /* 녹음 중 애니메이션 */
-        .record-btn.is-recording {
-            background-color: #EF4444;
-            color: white;
-            animation: pulse 1s infinite;
-        }
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 #F87171; }
-            70% { box-shadow: 0 0 0 10px rgba(248, 113, 113, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0); }
-        }
-
-        /* 이모지 반응 버튼 */
-        .reaction-btn {
-            font-size: 1.5rem; /* 24px */
-            padding: 0.5rem 1rem; /* 8px 16px */
-            border-radius: 9999px;
-            background-color: #F3F4F6;
-            transition: all 0.2s;
-        }
-        .reaction-btn:hover {
-            background-color: #E5E7EB;
-            transform: scale(1.1);
-        }
-        .reaction-btn .count {
-            font-size: 1rem; /* 16px */
-            font-weight: 700;
-            color: #4B5563;
-            margin-left: 0.5rem; /* 8px */
-        }
-        
-        /* 오디오 플레이어 */
-        audio {
-            width: 100%;
-            height: 40px;
-            margin-top: 8px;
-        }
-        
-        /* 로딩 오버레이 */
-        #loading-overlay {
-            background-color: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(4px);
-        }
-        
-        /* 댓글, 답글 카드 */
+        /* 스와이프 관련 스타일 */
         .comment-card {
-            background-color: #F9FAFB; /* 아주 연한 회색 */
-            border-radius: 1rem; /* 16px */
-            padding: 0.75rem 1rem; /* 12px 16px */
+            background-color: #EF4444; /* 삭제 버튼과 동일한 배경색 */
+            border-radius: 1rem;
             margin-top: 8px;
             position: relative;
-            transition: transform 0.3s ease-in-out;
-            overflow: hidden;
+            overflow: hidden; /* 중요: 삭제 버튼이 튀어나가지 않게 함 */
+            -webkit-user-select: none; /* 드래그 중 텍스트 선택 방지 */
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
-
         .comment-card-content {
             background-color: #F9FAFB;
+            transition: transform 0.3s ease-in-out;
+            position: relative; /* z-index를 주기 위해 */
+            z-index: 10;
         }
-        
         .delete-btn {
             position: absolute;
             top: 0;
-            right: -80px; /* 초기에 숨김 */
+            right: 0; /* 위치를 오른쪽 끝으로 고정 */
             width: 80px;
             height: 100%;
             background-color: #EF4444;
@@ -989,17 +529,7 @@
             justify-content: center;
             font-weight: bold;
             cursor: pointer;
-            transition: right 0.3s ease-in-out;
-        }
-
-        .comment-card.swiped .delete-btn {
-            right: 0;
-        }
-
-        .replies-list {
-            margin-left: 1.5rem; /* 24px */
-            padding-left: 1rem; /* 16px */
-            border-left: 2px solid #E5E7EB; /* 연한 회색 */
+            z-index: 1;
         }
     </style>
 </head>
@@ -1008,146 +538,88 @@
     <!-- 앱 전체 컨테이너 -->
     <div id="app-container" class="container mx-auto max-w-7xl p-4 md:p-8">
         
-        <!-- App Title -->
         <h1 class="text-center my-8">
             Footstep 2: Upload your MAP
         </h1>
         
-        <!-- User ID Display (Hidden) -->
-        <div id="user-id-display" class="text-center text-sm text-gray-600 mb-6 font-bold hidden">
-            Connecting...
-        </div>
-
-        <!-- Posts Grid -->
         <div id="posts-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             
-            <!-- (MODIFIED) Add New Map Card -> 이제 폼입니다 -->
             <div id="add-post-card" class="card flex flex-col p-5 space-y-3">
-                
                 <form id="new-post-form" class="flex flex-col space-y-4 h-full">
-                    
-                    <!-- File Input & Preview -->
                     <div class="flex-grow">
                         <input type="file" id="new-file-input" class="hidden" accept="image/*">
-                        
-                        <!-- File Input Label (+) -->
                         <label id="new-file-label" for="new-file-input">
                             <span>+</span>
                             <p>Upload New Map</p>
                         </label>
-                        
-                        <!-- Image Preview -->
                         <div id="new-image-preview-container" class="w-full aspect-w-4 aspect-h-3 bg-gray-100 rounded-lg overflow-hidden hidden">
                             <img id="new-image-preview" src="" alt="Image Preview" class="w-full h-full object-cover">
                         </div>
                     </div>
-
-                    <!-- Description Input (별도 윈도우) -->
                     <div>
                         <label for="new-description-input" class="block text-sm font-medium text-gray-700 font-bold mb-2">
                             Add Description (Required)
                         </label>
                         <textarea id="new-description-input" class="w-full resize-none" rows="3" placeholder="What is this map about?" required></textarea>
-
                         <button type="button" id="new-record-btn" class="record-btn !w-10 !h-10 !text-lg mt-2" title="Record Description (STT)">🎤</button>
                     </div>
-
-                    <!-- Submit Button -->
                     <button type="submit" id="new-post-submit-btn" class="btn btn-blue w-full">
                         Upload Post
                     </button>
-
                 </form>
             </div>
-
-            <!-- Post cards will be added here by JS -->
             
         </div>
     </div>
 
-    <!-- 게시물 카드 템플릿 -->
+    <!-- 템플릿 영역 -->
     <template id="post-template">
         <div class="post-card card flex flex-col overflow-hidden">
-            <!-- Image Area -->
             <div class="w-full aspect-w-4 aspect-h-3 bg-gray-100">
                 <img class="post-image w-full h-full object-cover" src="https://placehold.co/400x300/EEE/CCC?text=Loading..." alt="Post Image">
             </div>
-            
-            <!-- Body Area (Reactions + Comments) -->
             <div class="p-5 flex-grow flex flex-col">
-                
-                <!-- (MODIFIED) Post Description Area -->
-                <div class="post-description-container mb-4 hidden"> <!-- 기본 숨김 -->
+                <div class="post-description-container mb-4 hidden">
                     <p class="post-description-text text-gray-700"></p>
-                    
-                    <!-- (REMOVED) Description Form -->
-                    <!-- <form class="description-form space-y-3 hidden"> ... </form> -->
                 </div>
-
-                <!-- Emoji Reactions -->
                 <div class="reactions-container flex items-center gap-3 mb-4">
-                    <button class="reaction-btn" data-emoji="heart">
-                        ❤️ <span class="count">0</span>
-                    </button>
-                    <button class="reaction-btn" data-emoji="smile">
-                        😊 <span class="count">0</span>
-                    </button>
+                    <button class="reaction-btn" data-emoji="heart">❤️ <span class="count">0</span></button>
+                    <button class="reaction-btn" data-emoji="smile">😊 <span class="count">0</span></button>
                 </div>
-                
-                <!-- Comments Section -->
                 <div class="comments-section flex-grow flex flex-col">
                     <h3>Leave a Comment</h3>
-                    
-                    <!-- New Comment Form -->
                     <div class="new-comment-form space-y-3 mb-4">
                         <textarea class="comment-input w-full resize-none" rows="2" placeholder="Leave a wonderful comment!"></textarea>
                         <div class="flex items-center gap-3">
                             <button class="record-btn" title="Record Voice (STT)">🎤</button>
                             <button class="post-comment-btn btn btn-pink flex-grow">Post</button>
                         </div>
-                        <!-- <audio class="audio-preview hidden" controls></audio> --> <!-- (REMOVED) -->
                     </div>
-                    
-                    <!-- Comments List -->
-                    <div class="comments-list flex-grow space-y-2 overflow-y-auto max-h-[300px] pr-2">
-                        <!-- Comment cards will be added here by JS -->
-                    </div>
+                    <div class="comments-list flex-grow space-y-2 overflow-y-auto max-h-[300px] pr-2"></div>
                 </div>
             </div>
         </div>
     </template>
     
-    <!-- 댓글/답글 카드 템플릿 -->
     <template id="comment-template">
         <div class="comment-card">
-            <div class="comment-card-content">
+            <div class="comment-card-content p-3 rounded-xl"> <!-- 패딩과 라운드를 내부 컨텐츠로 이동 -->
                 <p class="comment-text text-gray-800"></p>
-                <!-- <audio class="comment-audio hidden" controls></audio> --> <!-- (REMOVED) -->
                 <button class="reply-btn text-xs font-bold text-blue-500 hover:text-blue-700 mt-1">Reply</button>
-                
-                <!-- Reply Form (Hidden) -->
                 <div class="reply-form space-y-2 mt-2" style="display: none;">
                     <textarea class="reply-input w-full resize-none text-sm" rows="2" placeholder="Leave a reply..."></textarea>
                     <div class="flex items-center gap-2">
                         <button class="record-btn !text-base !w-9 !h-9" title="Record Voice (STT)">🎤</button>
                         <button class="post-reply-btn btn btn-blue !text-sm !py-2 !px-4 flex-grow">Post</button>
                     </div>
-                    <!-- <audio class="audio-preview hidden" controls></audio> --> <!-- (REMOVED) -->
                 </div>
-                
-                <!-- Replies List -->
-                <div class="replies-list mt-2 space-y-2">
-                    <!-- Reply cards will be added here by JS -->
-                </div>
+                <div class="replies-list mt-2 space-y-2"></div>
             </div>
             <button class="delete-btn">Delete</button>
         </div>
     </template>
 
-    <!-- (REMOVED) Upload New Map Modal -->
-    <!-- <div id="upload-modal" ...> ... </div> -->
-
-    <!-- Loading Overlay -->
+    <!-- 로딩 오버레이 -->
     <div id="loading-overlay" class="hidden fixed inset-0 bg-white bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-50">
         <div class="text-center p-8 bg-white rounded-2xl shadow-xl">
             <div class="w-12 h-12 border-4 border-t-blue-500 border-gray-200 rounded-full animate-spin mx-auto"></div>
