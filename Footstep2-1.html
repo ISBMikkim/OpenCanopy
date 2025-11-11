@@ -30,7 +30,7 @@
             serverTimestamp,
             query,
             orderBy,
-            deleteDoc // deleteDoc 임포트
+            deleteDoc
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import {
             getStorage,
@@ -211,12 +211,32 @@
         // --- 5. 댓글 카드 렌더링 ---
         function renderComment(commentData, commentsListContainer, postId) {
             const commentCard = commentTemplate.content.cloneNode(true).firstElementChild;
-            commentCard.querySelector('.comment-text').textContent = commentData.text || "Comment";
+            const commentTextEl = commentCard.querySelector('.comment-text');
+            
+            // 텍스트와 작성자 정보를 함께 표시
+            const textNode = document.createTextNode(commentData.text || "Comment");
+            const authorSpan = document.createElement('span');
+            authorSpan.className = 'text-xs text-gray-500 ml-2';
+            authorSpan.textContent = `(by anonymous)`;
+            commentTextEl.appendChild(textNode);
+            commentTextEl.appendChild(authorSpan);
+            
             const replyBtn = commentCard.querySelector('.reply-btn');
             const replyForm = commentCard.querySelector('.reply-form');
-            replyBtn.onclick = () => replyForm.style.display = replyForm.style.display === 'none' ? 'block' : 'none';
+            const replyInput = replyForm.querySelector('.reply-input');
+
+            // --- BUG FIX: Reply 버튼 클릭 시 입력창 활성화 ---
+            replyBtn.onclick = () => {
+                const isHidden = replyForm.style.display === 'none' || replyForm.style.display === '';
+                replyForm.style.display = isHidden ? 'block' : 'none';
+                if (isHidden) {
+                    replyInput.focus(); // 폼을 보여줄 때 입력창에 포커스
+                }
+            };
+            
             replyForm.querySelector('.post-reply-btn').onclick = (e) => handlePostReply(e, postId, commentData.id);
             replyForm.querySelector('.record-btn').onclick = (e) => handleSpeechRecognition(e, replyForm);
+            
             loadReplies(postId, commentData.id, commentCard.querySelector('.replies-list'));
             commentsListContainer.appendChild(commentCard);
             addSwipeToDelete(commentCard, () => deleteComment(postId, commentData.id));
@@ -236,7 +256,16 @@
         // --- 7. 답글 카드 렌더링 ---
         function renderReply(replyData, repliesListContainer, postId, commentId) {
             const replyCard = commentTemplate.content.cloneNode(true).firstElementChild;
-            replyCard.querySelector('.comment-text').textContent = replyData.text || "Reply";
+            const replyTextEl = replyCard.querySelector('.comment-text');
+
+            // 텍스트와 작성자 정보를 함께 표시
+            const textNode = document.createTextNode(replyData.text || "Reply");
+            const authorSpan = document.createElement('span');
+            authorSpan.className = 'text-xs text-gray-500 ml-2';
+            authorSpan.textContent = `(by anonymous)`;
+            replyTextEl.appendChild(textNode);
+            replyTextEl.appendChild(authorSpan);
+            
             replyCard.querySelector('.reply-btn').remove();
             replyCard.querySelector('.reply-form').remove();
             replyCard.querySelector('.replies-list').remove();
@@ -340,7 +369,7 @@
         function addSwipeToDelete(element, deleteCallback) {
             let isDragging = false;
             let startX = 0;
-            const swipeThreshold = 50; // 50px 이상 움직여야 반응
+            const swipeThreshold = 50;
             const cardContent = element.querySelector('.comment-card-content');
 
             function getEventX(e) {
@@ -348,15 +377,10 @@
             }
 
             function onDragStart(e) {
-                // 오른쪽 클릭이나 다른 버튼은 무시
                 if (e.button && e.button !== 0) return;
-                
                 isDragging = true;
                 startX = getEventX(e);
-                // 드래그 중 텍스트 선택 방지
                 e.preventDefault();
-                
-                // 이벤트 리스너를 window에 등록하여 요소 밖으로 나가도 감지
                 window.addEventListener('mousemove', onDragMove);
                 window.addEventListener('touchmove', onDragMove, { passive: false });
                 window.addEventListener('mouseup', onDragEnd);
@@ -365,54 +389,38 @@
 
             function onDragMove(e) {
                 if (!isDragging) return;
-                
-                // 스크롤과 같은 기본 동작 방지
                 e.preventDefault();
-
                 const currentX = getEventX(e);
                 let moveX = currentX - startX;
-
-                // 오른쪽으로 스와이프하는 것은 막음
                 if (moveX > 0) moveX = 0;
-                // 너무 많이 스와이프 되는 것 방지 (버튼 너비의 1.5배)
                 if (moveX < -120) moveX = -120;
-                
-                cardContent.style.transition = 'none'; // 드래그 중에는 transition 없애기
+                cardContent.style.transition = 'none';
                 cardContent.style.transform = `translateX(${moveX}px)`;
             }
 
             function onDragEnd(e) {
                 if (!isDragging) return;
                 isDragging = false;
-
                 const finalX = cardContent.getBoundingClientRect().left;
                 const originalX = element.getBoundingClientRect().left;
                 const diffX = originalX - finalX;
-                
                 cardContent.style.transition = 'transform 0.3s ease-in-out';
-
                 if (diffX > swipeThreshold) {
-                    // 삭제 버튼 표시
                     cardContent.style.transform = 'translateX(-80px)';
                     element.classList.add('swiped');
                 } else {
-                    // 원위치
                     cardContent.style.transform = 'translateX(0)';
                     element.classList.remove('swiped');
                 }
-                
-                // window에 등록했던 이벤트 리스너 제거
                 window.removeEventListener('mousemove', onDragMove);
                 window.removeEventListener('touchmove', onDragMove);
                 window.removeEventListener('mouseup', onDragEnd);
                 window.removeEventListener('touchend', onDragEnd);
             }
 
-            // 마우스와 터치 시작 이벤트 등록
             element.addEventListener('mousedown', onDragStart);
             element.addEventListener('touchstart', onDragStart, { passive: false });
 
-            // 삭제 버튼 클릭 이벤트
             const deleteBtn = element.querySelector('.delete-btn');
             if (deleteBtn) {
                 deleteBtn.addEventListener('click', (e) => {
@@ -464,7 +472,6 @@
     </script>
     
     <style>
-        /* (기존 스타일은 변경 없음) */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #F0F9FF; color: #334155; }
         h1 { font-weight: 900; font-size: 2.5rem; line-height: 1.2; color: #1E40AF; text-shadow: 2px 2px 0 #BFDBFE; }
@@ -499,12 +506,12 @@
         
         /* 스와이프 관련 스타일 */
         .comment-card {
-            background-color: #EF4444; /* 삭제 버튼과 동일한 배경색 */
+            background-color: #EF4444;
             border-radius: 1rem;
             margin-top: 8px;
             position: relative;
-            overflow: hidden; /* 중요: 삭제 버튼이 튀어나가지 않게 함 */
-            -webkit-user-select: none; /* 드래그 중 텍스트 선택 방지 */
+            overflow: hidden;
+            -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
             user-select: none;
@@ -512,13 +519,13 @@
         .comment-card-content {
             background-color: #F9FAFB;
             transition: transform 0.3s ease-in-out;
-            position: relative; /* z-index를 주기 위해 */
+            position: relative;
             z-index: 10;
         }
         .delete-btn {
             position: absolute;
             top: 0;
-            right: 0; /* 위치를 오른쪽 끝으로 고정 */
+            right: 0;
             width: 80px;
             height: 100%;
             background-color: #EF4444;
@@ -603,7 +610,7 @@
     
     <template id="comment-template">
         <div class="comment-card">
-            <div class="comment-card-content p-3 rounded-xl"> <!-- 패딩과 라운드를 내부 컨텐츠로 이동 -->
+            <div class="comment-card-content p-3 rounded-xl">
                 <p class="comment-text text-gray-800"></p>
                 <button class="reply-btn text-xs font-bold text-blue-500 hover:text-blue-700 mt-1">Reply</button>
                 <div class="reply-form space-y-2 mt-2" style="display: none;">
